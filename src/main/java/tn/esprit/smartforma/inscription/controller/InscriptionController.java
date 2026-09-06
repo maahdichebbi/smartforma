@@ -25,6 +25,12 @@ public class InscriptionController {
         return inscriptionService.findAll();
     }
 
+    /** Lists registrations for the learner identified by the JWT. */
+    @GetMapping("/me")
+    public List<Inscription> findMine() {
+        return inscriptionService.findByApprenant(currentUserService.requireApprenantId());
+    }
+
     /** Get a single inscription by ID. */
     @GetMapping("/{id}")
     public Inscription findById(@PathVariable Long id) {

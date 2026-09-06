@@ -66,7 +66,7 @@ export class CatalogueComponent implements OnInit, OnDestroy {
     // Load recommendations if learner is logged in
     const currentLearner = this.learnerState.currentLearner();
     if (currentLearner && currentLearner.id) {
-      this.recommendationService.getRecommendationsForLearner(currentLearner.id, 20, 0).subscribe({
+      this.recommendationService.getMyRecommendations(20, 0).subscribe({
         next: recs => {
           const map = new Map<number, Recommendation>();
           recs.forEach(r => {

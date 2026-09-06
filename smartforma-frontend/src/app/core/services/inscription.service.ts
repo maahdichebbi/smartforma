@@ -23,6 +23,10 @@ export class InscriptionService {
     return this.http.get<Inscription[]>(`${this.baseUrl}/apprenant/${apprenantId}`);
   }
 
+  getMine(): Observable<Inscription[]> {
+    return this.http.get<Inscription[]>(`${this.baseUrl}/me`);
+  }
+
   getBySession(sessionId: number): Observable<Inscription[]> {
     return this.http.get<Inscription[]>(`${this.baseUrl}/session/${sessionId}`);
   }

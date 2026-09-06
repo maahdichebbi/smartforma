@@ -19,6 +19,17 @@ public class RecommendationController {
     private final RecommendationService recommendationService;
     private final CurrentUserService currentUserService;
 
+    /** Returns explainable recommendations for the learner identified by the JWT. */
+    @GetMapping("/me")
+    public List<RecommendationDto> getMyRecommendations(
+            @RequestParam(defaultValue = "4") int limit,
+            @RequestParam(defaultValue = "20") int minScore
+    ) {
+        return recommendationService.recommendForLearner(
+                currentUserService.requireApprenantId(), limit, minScore
+        );
+    }
+
     /**
      * Get personalized, explainable recommendations for a specific learner.
      *

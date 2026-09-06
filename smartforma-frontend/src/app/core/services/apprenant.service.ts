@@ -23,12 +23,23 @@ export class ApprenantService {
     return this.http.get<Apprenant>(`${this.baseUrl}/${id}`, context ? { context } : {});
   }
 
+  getMe(options?: { silent?: boolean }): Observable<Apprenant> {
+    const context = options?.silent
+      ? new HttpContext().set(SKIP_ERROR_TOAST, true)
+      : undefined;
+    return this.http.get<Apprenant>(`${this.baseUrl}/me`, context ? { context } : {});
+  }
+
   create(dto: ApprenantDto): Observable<Apprenant> {
     return this.http.post<Apprenant>(this.baseUrl, dto);
   }
 
   update(id: number, dto: ApprenantDto): Observable<Apprenant> {
     return this.http.put<Apprenant>(`${this.baseUrl}/${id}`, dto);
+  }
+
+  updateMe(dto: ApprenantDto): Observable<Apprenant> {
+    return this.http.put<Apprenant>(`${this.baseUrl}/me`, dto);
   }
 
   delete(id: number): Observable<void> {

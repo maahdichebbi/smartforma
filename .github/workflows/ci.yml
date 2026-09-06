@@ -82,6 +82,22 @@ jobs:
             --header "Authorization: Bearer $token" \
             http://localhost:8080/api/v1/auth/me > /dev/null
 
+          # A learner account gets a JWT at registration and can access only its own /me resources.
+          learner_token=$(curl --silent --show-error --fail \
+            --request POST http://localhost:8080/api/v1/auth/register \
+            --header "Content-Type: application/json" \
+            --data '{"nom":"CI","prenom":"Learner","email":"ci.learner@smartforma.test","password":"Learner123!","competences":"Java, Spring","interets":"Backend","niveau":"DEBUTANT"}' \
+            | python3 -c 'import json, sys; print(json.load(sys.stdin)["token"])')
+          curl --silent --show-error --fail \
+            --header "Authorization: Bearer $learner_token" \
+            http://localhost:8080/api/v1/apprenants/me > /dev/null
+          curl --silent --show-error --fail \
+            --header "Authorization: Bearer $learner_token" \
+            http://localhost:8080/api/v1/inscriptions/me > /dev/null
+          curl --silent --show-error --fail \
+            --header "Authorization: Bearer $learner_token" \
+            'http://localhost:8080/api/v1/recommendations/me?limit=4&minScore=0' > /dev/null
+
   frontend:
     name: Frontend build (Angular)
     runs-on: ubuntu-latest

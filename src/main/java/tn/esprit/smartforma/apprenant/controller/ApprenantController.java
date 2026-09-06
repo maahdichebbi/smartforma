@@ -25,6 +25,18 @@ public class ApprenantController {
         return apprenantService.findAll();
     }
 
+    /** Returns the learner profile linked to the authenticated account. */
+    @GetMapping("/me")
+    public Apprenant me() {
+        return apprenantService.findById(currentUserService.requireApprenantId());
+    }
+
+    /** Updates the learner profile linked to the authenticated account. */
+    @PutMapping("/me")
+    public Apprenant updateMe(@Valid @RequestBody ApprenantDto dto) {
+        return apprenantService.update(currentUserService.requireApprenantId(), dto);
+    }
+
     @GetMapping("/{id}")
     public Apprenant findById(@PathVariable Long id) {
         currentUserService.assertCanAccessApprenant(id);

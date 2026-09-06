@@ -49,7 +49,7 @@ export class MyInscriptionsComponent implements OnInit {
     effect(() => {
       const learner = this.learnerState.currentLearner();
       if (learner?.id) {
-        this.loadInscriptions(learner.id);
+        this.loadInscriptions();
       } else {
         this.inscriptions.set([]);
         this.loading.set(false);
@@ -60,15 +60,15 @@ export class MyInscriptionsComponent implements OnInit {
   ngOnInit(): void {
     const learner = this.learnerState.currentLearner();
     if (learner?.id) {
-      this.loadInscriptions(learner.id);
+      this.loadInscriptions();
     } else {
       this.loading.set(false);
     }
   }
 
-  loadInscriptions(apprenantId: number): void {
+  loadInscriptions(): void {
     this.loading.set(true);
-    this.inscriptionService.getByApprenant(apprenantId).subscribe({
+    this.inscriptionService.getMine().subscribe({
       next: list => {
         this.inscriptions.set(list);
         this.loading.set(false);
@@ -100,9 +100,8 @@ export class MyInscriptionsComponent implements OnInit {
           this.toastService.success('Inscription annulée avec succès.', 'Annulée');
         }
 
-        const learner = this.learnerState.currentLearner();
-        if (learner?.id) {
-          this.loadInscriptions(learner.id);
+        if (this.learnerState.currentLearner()?.id) {
+          this.loadInscriptions();
         }
       },
       error: (err) => {

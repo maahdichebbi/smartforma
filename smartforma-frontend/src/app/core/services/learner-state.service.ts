@@ -36,7 +36,7 @@ export class LearnerStateService {
           prenom: user.prenom ?? '',
           email: user.email
         });
-        this.apprenantService.getById(apprenantId, { silent: true }).subscribe({
+        this.apprenantService.getMe({ silent: true }).subscribe({
           next: profile => this.currentLearner.set(profile),
           error: () => {}
         });

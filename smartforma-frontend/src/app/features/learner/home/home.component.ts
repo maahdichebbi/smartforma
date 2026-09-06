@@ -55,7 +55,7 @@ export class LearnerHomeComponent implements OnInit {
     effect(() => {
       const learner = this.learnerState.currentLearner();
       if (learner && learner.id) {
-        this.loadRecommendations(learner.id);
+        this.loadRecommendations();
       } else {
         this.recommendations.set([]);
       }
@@ -78,9 +78,9 @@ export class LearnerHomeComponent implements OnInit {
     });
   }
 
-  loadRecommendations(learnerId: number): void {
+  loadRecommendations(): void {
     this.loadingRecs.set(true);
-    this.recommendationService.getRecommendationsForLearner(learnerId, 4, 15).subscribe({
+    this.recommendationService.getMyRecommendations(4, 15).subscribe({
       next: recs => {
         this.recommendations.set(recs);
         this.loadingRecs.set(false);
@@ -120,17 +120,16 @@ export class LearnerHomeComponent implements OnInit {
   }
 
   saveProfile(): void {
-    const learner = this.learnerState.currentLearner();
-    if (!learner || !learner.id) return;
+    if (!this.learnerState.currentLearner()) return;
 
     this.savingProfile.set(true);
-    this.apprenantService.update(learner.id, this.profileModel).subscribe({
+    this.apprenantService.updateMe(this.profileModel).subscribe({
       next: updated => {
         this.learnerState.setLearner(updated);
         this.savingProfile.set(false);
         this.closeProfileModal();
         this.toastService.success('Profil mis à jour ! Recommandations recalculées.');
-        this.loadRecommendations(updated.id!);
+        this.loadRecommendations();
       },
       error: err => {
         this.savingProfile.set(false);

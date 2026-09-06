@@ -85,9 +85,8 @@ export class FormationDetailComponent implements OnInit {
         });
 
         // If learner is selected, check their current inscriptions
-        const learner = this.learnerState.currentLearner();
-        if (learner?.id) {
-          this.loadMyInscriptions(learner.id);
+        if (this.learnerState.currentLearner()?.id) {
+          this.loadMyInscriptions();
         }
       },
       error: () => {
@@ -109,8 +108,8 @@ export class FormationDetailComponent implements OnInit {
     });
   }
 
-  private loadMyInscriptions(apprenantId: number): void {
-    this.inscriptionService.getByApprenant(apprenantId).subscribe({
+  private loadMyInscriptions(): void {
+    this.inscriptionService.getMine().subscribe({
       next: inscriptions => {
         const map = new Map<number, Inscription>();
         inscriptions

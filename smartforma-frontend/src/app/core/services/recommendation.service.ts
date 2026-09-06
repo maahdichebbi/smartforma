@@ -25,4 +25,11 @@ export class RecommendationService {
 
     return this.http.get<Recommendation[]>(`${this.baseUrl}/apprenant/${apprenantId}`, { params });
   }
+
+  getMyRecommendations(limit: number = 4, minScore: number = 20): Observable<Recommendation[]> {
+    const params = new HttpParams()
+      .set('limit', limit.toString())
+      .set('minScore', minScore.toString());
+    return this.http.get<Recommendation[]>(`${this.baseUrl}/me`, { params });
+  }
 }

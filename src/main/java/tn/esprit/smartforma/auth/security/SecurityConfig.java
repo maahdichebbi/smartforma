@@ -81,6 +81,10 @@ public class SecurityConfig {
 
                         // Learner (or admin for path-id admin tools) — identity still checked in controllers
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/inscriptions/me").hasRole("LEARNER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/recommendations/me").hasRole("LEARNER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/apprenants/me").hasRole("LEARNER")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/apprenants/me").hasRole("LEARNER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/inscriptions/session/*").hasRole("LEARNER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/inscriptions/apprenant/*").hasAnyRole("ADMIN", "LEARNER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/inscriptions/*").hasAnyRole("ADMIN", "LEARNER")
