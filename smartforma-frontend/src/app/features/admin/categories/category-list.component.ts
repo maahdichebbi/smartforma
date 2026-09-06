@@ -49,6 +49,7 @@ export class CategoryListComponent implements OnInit {
   }
 
   openCreateForm(): void {
+    this.saving.set(false);
     this.editingId.set(null);
     this.formNom = '';
     this.formDescription = '';
@@ -56,6 +57,7 @@ export class CategoryListComponent implements OnInit {
   }
 
   openEditForm(cat: Categorie): void {
+    this.saving.set(false);
     this.editingId.set(cat.id!);
     this.formNom = cat.nom;
     this.formDescription = cat.description ?? '';
@@ -82,6 +84,7 @@ export class CategoryListComponent implements OnInit {
     if (this.editingId()) {
       this.categorieService.update(this.editingId()!, dto).subscribe({
         next: () => {
+          this.saving.set(false);
           this.toastService.success('Catégorie modifiée avec succès.', 'Modifié');
           this.cancelForm();
           this.loadCategories();
@@ -94,6 +97,7 @@ export class CategoryListComponent implements OnInit {
     } else {
       this.categorieService.create(dto).subscribe({
         next: () => {
+          this.saving.set(false);
           this.toastService.success('Catégorie créée avec succès.', 'Créé');
           this.cancelForm();
           this.loadCategories();
