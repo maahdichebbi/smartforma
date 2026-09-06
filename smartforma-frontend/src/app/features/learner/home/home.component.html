@@ -1,0 +1,328 @@
+<div class="home-page">
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="hero-badge-dot"></span>
+          Plateforme de Formation Professionnelle
+        </div>
+        <h1 class="hero-title">
+          Développez vos compétences<br>
+          <span class="hero-accent">avec SmartForma</span>
+        </h1>
+        <p class="hero-subtitle">
+          Accédez à un catalogue de formations certifiantes, choisissez vos sessions et inscrivez-vous en quelques clics.
+        </p>
+
+        <div class="hero-actions">
+          <a routerLink="/formations" class="btn btn-primary hero-cta">
+            Explorer le catalogue
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </a>
+          <a
+            *ngIf="!auth.isAuthenticated()"
+            routerLink="/login"
+            [queryParams]="{ returnUrl: '/mes-inscriptions' }"
+            class="btn btn-outline hero-cta-secondary"
+          >
+            Mes inscriptions
+          </a>
+          <a
+            *ngIf="auth.isLearner()"
+            routerLink="/mes-inscriptions"
+            class="btn btn-outline hero-cta-secondary"
+          >
+            Mes inscriptions
+          </a>
+        </div>
+
+        <div class="hero-learner-pill" *ngIf="learnerState.currentLearner()">
+          <span class="pill-avatar">{{ learnerState.currentLearner()!.prenom![0] }}{{ learnerState.currentLearner()!.nom![0] }}</span>
+          <span>Connecté en tant que <strong>{{ learnerState.currentLearner()!.prenom }} {{ learnerState.currentLearner()!.nom }}</strong></span>
+        </div>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <div class="hero-card-floating card-1">
+          <div class="hc-icon">📚</div>
+          <div class="hc-text">Spring Boot</div>
+          <div class="hc-badge">INTERMEDIAIRE</div>
+        </div>
+        <div class="hero-card-floating card-2">
+          <div class="hc-icon">🎯</div>
+          <div class="hc-text">Agile & Scrum</div>
+          <div class="hc-badge">DEBUTANT</div>
+        </div>
+        <div class="hero-card-floating card-3">
+          <div class="hc-icon">🚀</div>
+          <div class="hc-text">DevOps & CI/CD</div>
+          <div class="hc-badge">AVANCE</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Bar -->
+  <section class="stats-bar" *ngIf="!loading()">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-number">{{ formationCount() }}</div>
+          <div class="stat-label">Formations disponibles</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-number">{{ categoryCount() }}</div>
+          <div class="stat-label">Catégories</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-number">100%</div>
+          <div class="stat-label">En ligne</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MLA Recommendations Section (Visible when learner is connected) -->
+  <section class="recommendations-section" *ngIf="learnerState.currentLearner()">
+    <div class="container">
+      <div class="recs-header">
+        <div>
+          <div class="recs-badge">
+            <span class="sparkle-icon">✨</span> Intelligence Artificielle & Recommandation
+          </div>
+          <h2 class="section-title recs-title">Recommandé pour vous</h2>
+          <p class="recs-subtitle">
+            Suggestions calculées sur mesure pour <strong>{{ learnerState.currentLearner()!.prenom }}</strong> selon vos compétences et vos intérêts.
+          </p>
+        </div>
+        <button class="btn btn-outline btn-profile-edit" (click)="openProfileModal()">
+          ⚙️ Ajuster mon profil
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div class="recs-loading" *ngIf="loadingRecs()">
+        <div class="spinner"></div>
+        <span>Calcul de vos meilleures affinités de formation…</span>
+      </div>
+
+      <!-- Empty state if no recommendations -->
+      <div class="recs-empty card card-body" *ngIf="!loadingRecs() && recommendations().length === 0">
+        <div class="empty-icon">🎯</div>
+        <h3>Complétez votre profil pour des suggestions personnalisées</h3>
+        <p>Ajoutez vos compétences et centres d'intérêt afin que le moteur MLA puisse analyser vos affinités.</p>
+        <button class="btn btn-primary" (click)="openProfileModal()">Renseigner mon profil</button>
+      </div>
+
+      <!-- Recommendations Cards Grid -->
+      <div class="recs-grid" *ngIf="!loadingRecs() && recommendations().length > 0">
+        <div class="rec-card card" *ngFor="let rec of recommendations()">
+          
+          <!-- Card Header with Score -->
+          <div class="rec-card-header">
+            <span class="category-pill">{{ rec.formation.categorie?.nom || 'Formation' }}</span>
+            <div class="score-pill" [ngClass]="getScoreBadgeClass(rec.score)">
+              <span class="score-num">{{ rec.score }}%</span>
+              <span class="score-lbl">Pertinence</span>
+            </div>
+          </div>
+
+          <!-- Card Body -->
+          <div class="rec-card-body">
+            <h3 class="rec-formation-title">{{ rec.formation.titre }}</h3>
+            <p class="rec-formation-desc">{{ rec.formation.description }}</p>
+
+            <!-- Key matching reason pill -->
+            <div class="rec-highlight-reason" *ngIf="rec.explications.length > 0">
+              <span class="reason-icon">💡</span>
+              <span class="reason-text">{{ rec.explications[0] }}</span>
+            </div>
+
+            <div class="rec-meta">
+              <span class="meta-item">📊 {{ rec.formation.niveau }}</span>
+              <span class="meta-item" *ngIf="rec.formation.dureeHeures">⏱️ {{ rec.formation.dureeHeures }}h</span>
+              <span class="meta-price">{{ rec.formation.prix | currency:'EUR':'symbol':'1.2-2' }}</span>
+            </div>
+          </div>
+
+          <!-- Card Actions -->
+          <div class="rec-card-footer">
+            <button class="btn btn-sm btn-outline btn-explain" (click)="openExplainModal(rec)" title="Voir l'explication de l'algorithme">
+              ℹ️ Pourquoi ?
+            </button>
+            <a [routerLink]="['/formations', rec.formation.id]" class="btn btn-sm btn-primary">
+              Voir la formation →
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick nav categories -->
+  <section class="quick-nav">
+    <div class="container">
+      <h2 class="section-title">Commencer maintenant</h2>
+      <div class="quick-cards">
+        <a routerLink="/formations" class="quick-card">
+          <div class="qc-icon">🔍</div>
+          <div class="qc-title">Explorer le catalogue</div>
+          <div class="qc-sub">Toutes les formations disponibles</div>
+        </a>
+        <a routerLink="/formations" [queryParams]="{ niveau: 'DEBUTANT' }" class="quick-card">
+          <div class="qc-icon">🌱</div>
+          <div class="qc-title">Niveau Débutant</div>
+          <div class="qc-sub">Commencez votre apprentissage</div>
+        </a>
+        <a routerLink="/formations" [queryParams]="{ niveau: 'INTERMEDIAIRE' }" class="quick-card">
+          <div class="qc-icon">⚡</div>
+          <div class="qc-title">Niveau Intermédiaire</div>
+          <div class="qc-sub">Approfondissez vos compétences</div>
+        </a>
+        <a routerLink="/formations" [queryParams]="{ niveau: 'AVANCE' }" class="quick-card">
+          <div class="qc-icon">🏆</div>
+          <div class="qc-title">Niveau Avancé</div>
+          <div class="qc-sub">Maîtrisez votre domaine</div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXPLAINABILITY MODAL (Pourquoi cette formation ?) -->
+  <div class="modal-backdrop" *ngIf="selectedRecModal()" (click)="closeExplainModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <span class="modal-tag">Explicabilité Algorithmique (XAI)</span>
+          <h3 class="modal-title">Pourquoi cette recommandation ?</h3>
+        </div>
+        <button class="modal-close" (click)="closeExplainModal()">✕</button>
+      </div>
+
+      <div class="modal-body" *ngIf="selectedRecModal()">
+        <div class="explain-summary">
+          <div class="explain-score-large" [ngClass]="getScoreBadgeClass(selectedRecModal()!.score)">
+            {{ selectedRecModal()!.score }}%
+          </div>
+          <div class="explain-formation-info">
+            <h4>{{ selectedRecModal()!.formation.titre }}</h4>
+            <span class="explain-cat">{{ selectedRecModal()!.formation.categorie?.nom }} • Niveau {{ selectedRecModal()!.formation.niveau }}</span>
+          </div>
+        </div>
+
+        <h5 class="breakdown-title">Détail des facteurs d'affinité :</h5>
+        <ul class="explain-reasons-list">
+          <li *ngFor="let expl of selectedRecModal()!.explications">
+            <span class="bullet-check">✓</span> {{ expl }}
+          </li>
+        </ul>
+
+        <div class="criteria-bars">
+          <div class="crit-bar-row">
+            <div class="crit-label">
+              <span>Compétences (40%)</span>
+              <strong>{{ selectedRecModal()!.criteres.scoreCompetences }}%</strong>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill bar-skills" [style.width.%]="selectedRecModal()!.criteres.scoreCompetences"></div>
+            </div>
+          </div>
+
+          <div class="crit-bar-row">
+            <div class="crit-label">
+              <span>Intérêts & Domaine (35%)</span>
+              <strong>{{ selectedRecModal()!.criteres.scoreInterets }}%</strong>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill bar-interests" [style.width.%]="selectedRecModal()!.criteres.scoreInterets"></div>
+            </div>
+          </div>
+
+          <div class="crit-bar-row">
+            <div class="crit-label">
+              <span>Compatibilité Niveau (25%)</span>
+              <strong>{{ selectedRecModal()!.criteres.scoreNiveau }}%</strong>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill bar-level" [style.width.%]="selectedRecModal()!.criteres.scoreNiveau"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="closeExplainModal()">Fermer</button>
+        <a [routerLink]="['/formations', selectedRecModal()!.formation.id]" (click)="closeExplainModal()" class="btn btn-primary">
+          Consulter la formation
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEARNER PROFILE EDIT MODAL -->
+  <div class="modal-backdrop" *ngIf="showProfileModal()" (click)="closeProfileModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <span class="modal-tag">Profil Apprenant</span>
+          <h3 class="modal-title">Personnaliser mes critères de recommandation</h3>
+        </div>
+        <button class="modal-close" (click)="closeProfileModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="profile-modal-intro">
+          Modifiez vos compétences, vos intérêts et votre niveau de maîtrise. Le moteur de recommandation recalculera instantanément vos suggestions.
+        </p>
+
+        <div class="form-group mb-3">
+          <label class="form-label">Compétences maîtrisées</label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Ex: Java, Spring Boot, SQL, Docker…"
+            [(ngModel)]="profileModel.competences"
+          />
+          <span class="form-hint">Séparez vos compétences par des virgules.</span>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label">Centres d'intérêt / Domaines cibles</label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Ex: Backend, Cloud, DevOps, Agile…"
+            [(ngModel)]="profileModel.interets"
+          />
+          <span class="form-hint">Séparez vos intérêts par des virgules.</span>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label">Niveau d'expérience global</label>
+          <select class="form-control" [(ngModel)]="profileModel.niveau">
+            <option *ngFor="let n of niveaux" [value]="n">
+              {{ n === 'DEBUTANT' ? 'Débutant' : (n === 'INTERMEDIAIRE' ? 'Intermédiaire' : 'Avancé') }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="closeProfileModal()" [disabled]="savingProfile()">
+          Annuler
+        </button>
+        <button class="btn btn-primary" (click)="saveProfile()" [disabled]="savingProfile()">
+          <span class="spinner spinner-sm" *ngIf="savingProfile()"></span>
+          {{ savingProfile() ? 'Recalcul…' : 'Enregistrer & Recalculer' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+

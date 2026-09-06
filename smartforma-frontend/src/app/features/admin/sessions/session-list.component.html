@@ -1,0 +1,383 @@
+<div class="container main-content">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Sessions de Formation</h1>
+      <p class="page-subtitle">Planifiez et gérez les dates, horaires et capacités d'accueil des apprenants.</p>
+    </div>
+    <div class="header-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+      <button
+        class="btn btn-outline"
+        (click)="exportPlanningExcel()"
+        [disabled]="exportingPlanning()"
+        title="Exporter toutes les sessions et taux d'occupation vers Excel"
+      >
+        <span *ngIf="!exportingPlanning()">📊 Exporter Planning (.xlsx)</span>
+        <span *ngIf="exportingPlanning()">⏳ Génération en cours...</span>
+      </button>
+      <button class="btn btn-primary" (click)="openCreateForm()" *ngIf="!showForm()">
+        ➕ Nouvelle session
+      </button>
+    </div>
+  </div>
+
+  <!-- Delete Error Alert if any -->
+  <div class="alert alert-danger" *ngIf="deleteError()">
+    <span class="alert-icon">⚠️</span>
+    <div class="alert-content">
+      <strong>Attention :</strong> {{ deleteError() }}
+    </div>
+    <button class="btn-close" (click)="deleteError.set(null)">✕</button>
+  </div>
+
+  <!-- Create / Edit Form Card -->
+  <div class="card form-card" *ngIf="showForm()">
+    <div class="card-header form-card-header">
+      <h3 class="form-card-title">
+        {{ editingId() ? 'Modifier la session #' + editingId() : 'Programmer une nouvelle session' }}
+      </h3>
+      <button type="button" class="close-btn" (click)="cancelForm()" title="Fermer">✕</button>
+    </div>
+
+    <div class="card-body">
+      <!-- Error banner if any -->
+      <div class="alert alert-danger" *ngIf="formError()">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-content">{{ formError() }}</div>
+      </div>
+
+      <form [formGroup]="sessionForm" (ngSubmit)="submitForm()">
+        
+        <!-- Row 1: Formation Selection -->
+        <div class="form-group">
+          <label class="form-label" for="sess-formation">Formation associée *</label>
+          <select
+            id="sess-formation"
+            class="form-control"
+            formControlName="formationId"
+            [class.is-invalid]="isFieldInvalid('formationId')"
+          >
+            <option [ngValue]="null" disabled>-- Sélectionner une formation --</option>
+            <option *ngFor="let f of formations()" [ngValue]="f.id">
+              {{ f.titre }} ({{ f.categorie?.nom || 'Sans catégorie' }}) — {{ f.dureeHeures || 0 }}h
+            </option>
+          </select>
+          <div class="form-error" *ngIf="isFieldInvalid('formationId')">
+            Veuillez sélectionner la formation pour cette session.
+          </div>
+        </div>
+
+        <!-- Row 2: Dates -->
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="sess-dateDebut">Date de début *</label>
+            <input
+              id="sess-dateDebut"
+              type="date"
+              class="form-control"
+              formControlName="dateDebut"
+              [class.is-invalid]="isFieldInvalid('dateDebut')"
+            />
+            <div class="form-error" *ngIf="isFieldInvalid('dateDebut')">
+              La date de début est obligatoire.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="sess-dateFin">Date de fin *</label>
+            <input
+              id="sess-dateFin"
+              type="date"
+              class="form-control"
+              formControlName="dateFin"
+              [class.is-invalid]="isFieldInvalid('dateFin')"
+            />
+            <div class="form-error" *ngIf="isFieldInvalid('dateFin')">
+              La date de fin est obligatoire.
+            </div>
+          </div>
+        </div>
+
+        <!-- Cross-field date error -->
+        <div class="form-error mb-3" *ngIf="sessionForm.hasError('dateOrderInvalid') && sessionForm.get('dateFin')?.touched">
+          ⚠️ La date de fin doit être strictement postérieure à la date de début.
+        </div>
+
+        <!-- Row 3: Horaires (Optional) & Capacité -->
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label class="form-label" for="sess-hDebut">Heure de début (opt.)</label>
+            <input
+              id="sess-hDebut"
+              type="time"
+              class="form-control"
+              formControlName="heureDebut"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="sess-hFin">Heure de fin (opt.)</label>
+            <input
+              id="sess-hFin"
+              type="time"
+              class="form-control"
+              formControlName="heureFin"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="sess-capacite">Capacité max (places) *</label>
+            <input
+              id="sess-capacite"
+              type="number"
+              min="1"
+              step="1"
+              class="form-control"
+              placeholder="ex. 15"
+              formControlName="capacite"
+              [class.is-invalid]="isFieldInvalid('capacite')"
+            />
+            <div class="form-error" *ngIf="isFieldInvalid('capacite')">
+              La capacité doit être d'au moins 1 place.
+            </div>
+          </div>
+        </div>
+
+        <!-- Cross-field time error -->
+        <div class="form-error mb-3" *ngIf="sessionForm.hasError('timeOrderInvalid')">
+          ⚠️ L'heure de fin doit être postérieure à l'heure de début.
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="saving() || sessionForm.invalid"
+          >
+            <ng-container *ngIf="!saving()">
+              {{ editingId() ? 'Enregistrer les modifications' : 'Programmer la session' }}
+            </ng-container>
+            <ng-container *ngIf="saving()">
+              <span class="spinner"></span> Enregistrement…
+            </ng-container>
+          </button>
+          <button type="button" class="btn btn-outline" (click)="cancelForm()">
+            Annuler
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- Filters & Toolbar -->
+  <div class="card toolbar-card">
+    <div class="toolbar">
+      <div class="filter-group">
+        <select class="form-control select-filter" [(ngModel)]="filterFormationId">
+          <option [ngValue]="null">Toutes les formations</option>
+          <option *ngFor="let f of formations()" [ngValue]="f.id">
+            {{ f.titre }}
+          </option>
+        </select>
+
+        <select class="form-control select-filter" [(ngModel)]="filterStatut">
+          <option value="ALL">Tous les statuts</option>
+          <option value="UPCOMING">À venir</option>
+          <option value="IN_PROGRESS">En cours</option>
+          <option value="FULL">Complète</option>
+          <option value="COMPLETED">Terminée</option>
+        </select>
+
+        <button
+          *ngIf="filterFormationId !== null || filterStatut !== 'ALL'"
+          class="btn btn-sm btn-outline"
+          (click)="resetFilters()"
+        >
+          Réinitialiser
+        </button>
+      </div>
+
+      <div class="toolbar-meta" *ngIf="!loading()">
+        <span>{{ filteredSessions().length }} session(s) programmée(s)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading()">
+    <div class="skeleton-table">
+      <div class="skeleton sk-row" *ngFor="let i of [1,2,3,4]"></div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state card card-body" *ngIf="!loading() && filteredSessions().length === 0">
+    <div class="empty-state-icon">📅</div>
+    <h2 class="empty-state-title">
+      {{ sessions().length === 0 ? 'Aucune session programmée' : 'Aucune session trouvée' }}
+    </h2>
+    <p class="empty-state-text">
+      {{ sessions().length === 0 
+        ? 'Commencez par programmer une première session pour vos formations.' 
+        : 'Aucune session ne correspond à vos critères de filtrage.' }}
+    </p>
+    <div class="empty-state-actions">
+      <button
+        *ngIf="sessions().length === 0"
+        class="btn btn-primary"
+        (click)="openCreateForm()"
+      >
+        ➕ Programmer une session
+      </button>
+      <button
+        *ngIf="sessions().length > 0"
+        class="btn btn-outline"
+        (click)="resetFilters()"
+      >
+        Réinitialiser les filtres
+      </button>
+    </div>
+  </div>
+
+  <!-- Sessions Table -->
+  <div class="table-container" *ngIf="!loading() && filteredSessions().length > 0">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Formation</th>
+          <th>Période & Horaires</th>
+          <th>Disponibilité & Places</th>
+          <th>Statut</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let s of filteredSessions(); trackBy: trackBySession">
+          <!-- Formation Info -->
+          <td>
+            <div class="formation-info-group">
+              <a
+                *ngIf="s.formation"
+                [routerLink]="['/admin/formations', s.formation.id, 'edit']"
+                class="formation-name-link"
+                title="Modifier cette formation"
+              >
+                {{ s.formation.titre }}
+              </a>
+              <span class="formation-name-link" *ngIf="!s.formation">Formation inconnue</span>
+              <span class="badge badge-neutral session-id-badge">Session #{{ s.id }}</span>
+            </div>
+          </td>
+
+          <!-- Period & Hours -->
+          <td>
+            <div class="period-group">
+              <span class="period-dates">
+                📅 {{ formatDate(s.dateDebut) }} → {{ formatDate(s.dateFin) }}
+              </span>
+              <span class="period-hours" *ngIf="s.heureDebut || s.heureFin">
+                🕒 {{ formatTime(s.heureDebut) || '00h00' }} - {{ formatTime(s.heureFin) || 'Fin' }}
+              </span>
+            </div>
+          </td>
+
+          <!-- Occupancy / Places -->
+          <td>
+            <div class="occupancy-box">
+              <div class="occupancy-header">
+                <span class="occupancy-count">
+                  <strong>{{ getActiveInscriptions(s.id!) }}</strong> / {{ s.capacite }} inscrits
+                </span>
+                <span class="places-left" [class.places-empty]="getAvailablePlaces(s) === 0">
+                  ({{ getAvailablePlaces(s) }} restante{{ getAvailablePlaces(s) > 1 ? 's' : '' }})
+                </span>
+              </div>
+              <div class="progress-bar-bg">
+                <div
+                  class="progress-bar-fill"
+                  [style.width.%]="getOccupancyPercentage(s)"
+                  [ngClass]="{
+                    'fill-full': getOccupancyPercentage(s) >= 100,
+                    'fill-high': getOccupancyPercentage(s) >= 80 && getOccupancyPercentage(s) < 100,
+                    'fill-normal': getOccupancyPercentage(s) < 80
+                  }"
+                ></div>
+              </div>
+            </div>
+          </td>
+
+          <!-- Statut Badge -->
+          <td>
+            <span class="badge" [ngClass]="getSessionStatus(s).badgeClass">
+              {{ getSessionStatus(s).label }}
+            </span>
+          </td>
+
+          <!-- Actions -->
+          <td class="col-actions">
+            <!-- Normal action buttons -->
+            <ng-container *ngIf="confirmDeleteId() !== s.id">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline"
+                (click)="exportAttendancePdf(s.id!)"
+                [disabled]="exportingSessionId() === s.id && exportingFormat() === 'pdf'"
+                title="Télécharger la feuille d'émargement officielle en PDF"
+              >
+                <span *ngIf="!(exportingSessionId() === s.id && exportingFormat() === 'pdf')">📄 PDF</span>
+                <span *ngIf="exportingSessionId() === s.id && exportingFormat() === 'pdf'">⏳</span>
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline"
+                (click)="exportAttendanceExcel(s.id!)"
+                [disabled]="exportingSessionId() === s.id && exportingFormat() === 'excel'"
+                title="Télécharger la liste de présence sous Excel"
+              >
+                <span *ngIf="!(exportingSessionId() === s.id && exportingFormat() === 'excel')">📊 Excel</span>
+                <span *ngIf="exportingSessionId() === s.id && exportingFormat() === 'excel'">⏳</span>
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline"
+                (click)="openEditForm(s)"
+                title="Modifier les détails de la session"
+              >
+                ✏️
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-danger-outline"
+                (click)="requestDelete(s.id!)"
+                title="Supprimer la session"
+              >
+                🗑️
+              </button>
+            </ng-container>
+
+            <!-- Confirm delete -->
+            <ng-container *ngIf="confirmDeleteId() === s.id">
+              <div class="inline-confirm">
+                <span class="confirm-warn">Supprimer ?</span>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-danger"
+                  (click)="confirmDelete(s.id!)"
+                  [disabled]="deletingId() === s.id"
+                >
+                  <ng-container *ngIf="deletingId() !== s.id">Oui</ng-container>
+                  <ng-container *ngIf="deletingId() === s.id"><span class="spinner spinner-sm"></span></ng-container>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline" (click)="cancelDelete()">Non</button>
+              </div>
+            </ng-container>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>

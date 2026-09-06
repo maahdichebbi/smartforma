@@ -1,0 +1,257 @@
+<div class="container main-content">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Gestion des Inscriptions</h1>
+      <p class="page-subtitle">Visualisez les places occupées, les listes d'attente et pilotez les promotions d'apprenants.</p>
+    </div>
+  </div>
+
+  <!-- Promotion Feedback Alert Banner -->
+  <div class="alert alert-info alert-promotion" *ngIf="lastPromotionMessage()">
+    <span class="alert-icon">🎉</span>
+    <div class="alert-content">
+      <strong>Promotion automatique effectuée :</strong> {{ lastPromotionMessage() }}
+    </div>
+    <button class="btn-close" (click)="lastPromotionMessage.set(null)">✕</button>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="admin-stats" *ngIf="!loading()">
+    <div class="stat-card">
+      <div class="stat-card-icon icon-primary">📋</div>
+      <div class="stat-card-body">
+        <div class="stat-card-number">{{ totalInscriptions() }}</div>
+        <div class="stat-card-label">Total Inscriptions</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon icon-success">✅</div>
+      <div class="stat-card-body">
+        <div class="stat-card-number">{{ confirmedCount() }}</div>
+        <div class="stat-card-label">Places Confirmées</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon icon-warning">⏳</div>
+      <div class="stat-card-body">
+        <div class="stat-card-number">{{ waitingCount() }}</div>
+        <div class="stat-card-label">En Liste d'Attente</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon icon-neutral">✖️</div>
+      <div class="stat-card-body">
+        <div class="stat-card-number">{{ cancelledCount() }}</div>
+        <div class="stat-card-label">Annulées</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Toolbar -->
+  <div class="card toolbar-card">
+    <div class="toolbar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          class="form-control search-input"
+          placeholder="Rechercher par apprenant, email, formation…"
+          [(ngModel)]="searchTerm"
+        />
+        <button
+          *ngIf="searchTerm"
+          class="clear-btn"
+          (click)="searchTerm = ''"
+        >✕</button>
+      </div>
+
+      <div class="filter-group">
+        <select class="form-control select-filter" [(ngModel)]="filterFormationId">
+          <option [ngValue]="null">Toutes les formations</option>
+          <option *ngFor="let f of formations()" [ngValue]="f.id">
+            {{ f.titre }}
+          </option>
+        </select>
+
+        <select class="form-control select-filter" [(ngModel)]="filterStatut">
+          <option value="ALL">Tous les statuts</option>
+          <option value="CONFIRMEE">✅ Confirmées uniquement</option>
+          <option value="EN_ATTENTE">⏳ Liste d'attente uniquement</option>
+          <option value="ANNULEE">Annulées</option>
+        </select>
+
+        <button
+          *ngIf="searchTerm || filterFormationId !== null || filterStatut !== 'ALL'"
+          class="btn btn-sm btn-outline"
+          (click)="resetFilters()"
+        >
+          Réinitialiser
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-sm btn-outline"
+          (click)="exportInscriptionsExcel()"
+          [disabled]="exporting()"
+          title="Exporter le registre des inscriptions vers Excel (.xlsx)"
+        >
+          <span *ngIf="!exporting()">📊 Exporter Excel</span>
+          <span *ngIf="exporting()">⏳ Génération...</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="toolbar-meta" *ngIf="!loading()">
+      <span>{{ filteredInscriptions().length }} inscription(s) affichée(s)</span>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading()">
+    <div class="skeleton-table">
+      <div class="skeleton sk-row" *ngFor="let i of [1,2,3,4,5]"></div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state card card-body" *ngIf="!loading() && filteredInscriptions().length === 0">
+    <div class="empty-state-icon">📋</div>
+    <h2 class="empty-state-title">Aucune inscription trouvée</h2>
+    <p class="empty-state-text">
+      {{ inscriptions().length === 0 
+        ? 'Aucun apprenant n\'est encore inscrit aux sessions de formation.' 
+        : 'Aucune inscription ne correspond aux critères de recherche.' }}
+    </p>
+    <div class="empty-state-actions" *ngIf="inscriptions().length > 0">
+      <button class="btn btn-outline" (click)="resetFilters()">
+        Réinitialiser les filtres
+      </button>
+    </div>
+  </div>
+
+  <!-- Inscriptions Table -->
+  <div class="table-container" *ngIf="!loading() && filteredInscriptions().length > 0">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Apprenant</th>
+          <th>Formation & Session</th>
+          <th>Date Inscription</th>
+          <th>Statut & File</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          *ngFor="let item of filteredInscriptions(); trackBy: trackByInscr"
+          [class.row-confirmee]="item.statut === 'CONFIRMEE'"
+          [class.row-attente]="item.statut === 'EN_ATTENTE'"
+          [class.row-annulee]="item.statut === 'ANNULEE'"
+        >
+          
+          <!-- Apprenant -->
+          <td>
+            <div class="learner-info">
+              <span class="learner-name">{{ item.apprenant?.prenom }} {{ item.apprenant?.nom }}</span>
+              <span class="learner-email">{{ item.apprenant?.email }}</span>
+            </div>
+          </td>
+
+          <!-- Formation & Session -->
+          <td>
+            <div class="formation-cell">
+              <span class="formation-name">{{ item.session?.formation?.titre || 'Formation inconnue' }}</span>
+              <span class="session-dates-sm" *ngIf="item.session">
+                📅 {{ formatDate(item.session.dateDebut) }} → {{ formatDate(item.session.dateFin) }}
+              </span>
+            </div>
+          </td>
+
+          <!-- Date -->
+          <td>
+            <span class="date-text">{{ formatDate(item.dateInscription) }}</span>
+          </td>
+
+          <!-- Statut -->
+          <td>
+            <div class="statut-badge-group">
+              <span class="badge" [ngClass]="{
+                'badge-success': item.statut === 'CONFIRMEE',
+                'badge-warning': item.statut === 'EN_ATTENTE',
+                'badge-neutral': item.statut === 'ANNULEE'
+              }">
+                <ng-container *ngIf="item.statut === 'CONFIRMEE'">
+                  ✅ Confirmée
+                </ng-container>
+                <ng-container *ngIf="item.statut === 'EN_ATTENTE'">
+                  ⏳ En attente
+                </ng-container>
+                <ng-container *ngIf="item.statut === 'ANNULEE'">
+                  Annulée
+                </ng-container>
+              </span>
+
+              <!-- Queue Position Badge -->
+              <span class="queue-pill" *ngIf="item.statut === 'EN_ATTENTE'">
+                Position #{{ item.positionFile }}
+              </span>
+            </div>
+          </td>
+
+          <!-- Actions -->
+          <td class="col-actions">
+            <!-- Normal action buttons -->
+            <ng-container *ngIf="confirmCancelId() !== item.id">
+              <!-- Confirm manual promotion for waiting learner -->
+              <button
+                *ngIf="item.statut === 'EN_ATTENTE'"
+                class="btn btn-sm btn-outline btn-promote"
+                (click)="confirmManual(item)"
+                [disabled]="actionInProgressId() === item.id"
+                title="Confirmer manuellement cette inscription si des places sont libres"
+              >
+                <ng-container *ngIf="actionInProgressId() !== item.id">
+                  ⚡ Confirmer
+                </ng-container>
+                <ng-container *ngIf="actionInProgressId() === item.id">
+                  <span class="spinner spinner-sm"></span>
+                </ng-container>
+              </button>
+
+              <!-- Cancel registration (triggers auto promotion if confirmed) -->
+              <button
+                *ngIf="item.statut !== 'ANNULEE'"
+                class="btn btn-sm btn-danger-outline"
+                (click)="requestCancel(item.id!)"
+                [disabled]="actionInProgressId() === item.id"
+                title="Annuler cette inscription"
+              >
+                Annuler
+              </button>
+            </ng-container>
+
+            <!-- Inline confirm cancel -->
+            <ng-container *ngIf="confirmCancelId() === item.id">
+              <div class="inline-confirm">
+                <span class="confirm-warn">Annuler ?</span>
+                <button
+                  class="btn btn-sm btn-danger"
+                  (click)="confirmCancel(item)"
+                  [disabled]="actionInProgressId() === item.id"
+                >
+                  <ng-container *ngIf="actionInProgressId() !== item.id">Oui</ng-container>
+                  <ng-container *ngIf="actionInProgressId() === item.id"><span class="spinner spinner-sm"></span></ng-container>
+                </button>
+                <button class="btn btn-sm btn-outline" (click)="abortCancel()">Non</button>
+              </div>
+            </ng-container>
+          </td>
+
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>

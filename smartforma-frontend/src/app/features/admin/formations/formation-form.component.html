@@ -1,0 +1,369 @@
+<div class="container main-content">
+
+  <!-- Breadcrumb & Back -->
+  <div class="breadcrumb-bar">
+    <a routerLink="/admin/formations" class="back-link">
+      ← Retour aux formations
+    </a>
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">
+        {{ isEditMode() ? 'Modifier la formation' : 'Nouvelle formation' }}
+      </h1>
+      <p class="page-subtitle" *ngIf="isEditMode() && currentFormation()">
+        {{ currentFormation()?.titre }}
+      </p>
+      <p class="page-subtitle" *ngIf="!isEditMode()">
+        Remplissez les informations ci-dessous pour créer une nouvelle formation.
+      </p>
+    </div>
+    <div class="header-actions" *ngIf="isEditMode() && currentFormation()">
+      <a
+        [routerLink]="['/formations', formationId()]"
+        target="_blank"
+        class="btn btn-outline"
+        title="Voir la formation dans le catalogue apprenant"
+      >
+        👁️ Voir dans le catalogue
+      </a>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading()">
+    <div class="skeleton-card">
+      <div class="skeleton sk-title"></div>
+      <div class="skeleton sk-body"></div>
+    </div>
+  </div>
+
+  <div class="form-layout" *ngIf="!loading()">
+
+    <!-- ── CARD 1: FORMATION DETAILS ─────────────────────────────────── -->
+    <section class="card section-card">
+      <div class="card-header">
+        <h2 class="card-title">1. Informations générales</h2>
+      </div>
+      <div class="card-body">
+        <form [formGroup]="formationForm" (ngSubmit)="onSubmitFormation()">
+
+          <!-- Row 1: Titre -->
+          <div class="form-group">
+            <label class="form-label" for="form-titre">Titre de la formation *</label>
+            <input
+              id="form-titre"
+              type="text"
+              class="form-control"
+              placeholder="ex. Formation Complète Spring Boot & Microservices"
+              formControlName="titre"
+              [class.is-invalid]="isFieldInvalid('titre')"
+            />
+            <div class="form-error" *ngIf="isFieldInvalid('titre')">
+              Le titre est obligatoire (minimum 3 caractères).
+            </div>
+          </div>
+
+          <!-- Row 2: Catégorie & Niveau -->
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="form-categorie">Catégorie *</label>
+              <select
+                id="form-categorie"
+                class="form-control"
+                formControlName="categorieId"
+                [class.is-invalid]="isFieldInvalid('categorieId')"
+              >
+                <option [ngValue]="null" disabled>-- Sélectionner une catégorie --</option>
+                <option *ngFor="let cat of categories()" [ngValue]="cat.id">
+                  {{ cat.nom }}
+                </option>
+              </select>
+              <div class="form-error" *ngIf="isFieldInvalid('categorieId')">
+                Veuillez sélectionner une catégorie.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="form-niveau">Niveau *</label>
+              <select
+                id="form-niveau"
+                class="form-control"
+                formControlName="niveau"
+                [class.is-invalid]="isFieldInvalid('niveau')"
+              >
+                <option value="DEBUTANT">Débutant</option>
+                <option value="INTERMEDIAIRE">Intermédiaire</option>
+                <option value="AVANCE">Avancé</option>
+              </select>
+              <div class="form-error" *ngIf="isFieldInvalid('niveau')">
+                Le niveau est obligatoire.
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 3: Prix & Durée -->
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="form-prix">Prix (TND) *</label>
+              <input
+                id="form-prix"
+                type="number"
+                min="0"
+                step="1"
+                class="form-control"
+                placeholder="ex. 450"
+                formControlName="prix"
+                [class.is-invalid]="isFieldInvalid('prix')"
+              />
+              <div class="form-error" *ngIf="isFieldInvalid('prix')">
+                Le prix doit être supérieur ou égal à 0.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="form-duree">Durée estimée (heures) *</label>
+              <input
+                id="form-duree"
+                type="number"
+                min="1"
+                step="1"
+                class="form-control"
+                placeholder="ex. 30"
+                formControlName="dureeHeures"
+                [class.is-invalid]="isFieldInvalid('dureeHeures')"
+              />
+              <div class="form-error" *ngIf="isFieldInvalid('dureeHeures')">
+                La durée doit être d'au moins 1 heure.
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 4: Description -->
+          <div class="form-group">
+            <label class="form-label" for="form-desc">Description détaillée *</label>
+            <textarea
+              id="form-desc"
+              rows="5"
+              class="form-control"
+              placeholder="Décrivez les objectifs pédagogiques, le contenu et les prérequis…"
+              formControlName="description"
+              [class.is-invalid]="isFieldInvalid('description')"
+            ></textarea>
+            <div class="form-error" *ngIf="isFieldInvalid('description')">
+              La description est obligatoire.
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="saving()"
+            >
+              <ng-container *ngIf="!saving()">
+                {{ isEditMode() ? 'Enregistrer les modifications' : 'Créer la formation' }}
+              </ng-container>
+              <ng-container *ngIf="saving()">
+                <span class="spinner"></span> Enregistrement…
+              </ng-container>
+            </button>
+            <a routerLink="/admin/formations" class="btn btn-outline">
+              Annuler
+            </a>
+          </div>
+
+        </form>
+      </div>
+    </section>
+
+    <!-- ── CARD 2: CHAPTER MANAGEMENT (PHASE D3) ────────────────────── -->
+    <!-- When creating new: Notice that chapters can be added after creation -->
+    <section class="card section-card notice-card" *ngIf="!isEditMode()">
+      <div class="card-body notice-body">
+        <div class="notice-icon">💡</div>
+        <div>
+          <h3 class="notice-title">Gestion des chapitres</h3>
+          <p class="notice-text">
+            Vous pourrez structurer le contenu pédagogique et ajouter des chapitres immédiatement après avoir enregistré la formation.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- When in edit mode: Full chapter CRUD -->
+    <section class="card section-card" *ngIf="isEditMode()">
+      <div class="card-header chapters-header">
+        <div>
+          <h2 class="card-title">2. Programme & Chapitres</h2>
+          <p class="card-subtitle">
+            Organisez le découpage pédagogique de votre formation par ordre chronologique.
+          </p>
+        </div>
+        <button
+          *ngIf="!showChapterForm()"
+          type="button"
+          class="btn btn-primary"
+          (click)="openAddChapter()"
+        >
+          ➕ Ajouter un chapitre
+        </button>
+      </div>
+
+      <div class="card-body">
+
+        <!-- Inline Add / Edit Chapter Form -->
+        <div class="chapter-form-box" *ngIf="showChapterForm()">
+          <div class="chapter-form-header">
+            <h3 class="chapter-form-title">
+              {{ editingChapterId() ? 'Modifier le chapitre' : 'Nouveau chapitre' }}
+            </h3>
+            <button type="button" class="close-chapter-btn" (click)="cancelChapterForm()">✕</button>
+          </div>
+
+          <!-- Conflict/Error Alert -->
+          <div class="alert alert-danger" *ngIf="chapterErrorMessage()">
+            <span class="alert-icon">⚠️</span>
+            <div class="alert-content">{{ chapterErrorMessage() }}</div>
+          </div>
+
+          <form (ngSubmit)="submitChapter()">
+            <div class="chapter-form-grid">
+              <div class="form-group form-group-grow">
+                <label class="form-label" for="chap-titre">Titre du chapitre *</label>
+                <input
+                  id="chap-titre"
+                  type="text"
+                  class="form-control"
+                  placeholder="ex. Introduction aux Microservices"
+                  [(ngModel)]="chapterTitre"
+                  name="chapterTitre"
+                  required
+                />
+              </div>
+
+              <div class="form-group ordre-group">
+                <label class="form-label" for="chap-ordre">Ordre *</label>
+                <input
+                  id="chap-ordre"
+                  type="number"
+                  min="1"
+                  step="1"
+                  class="form-control"
+                  [(ngModel)]="chapterOrdre"
+                  name="chapterOrdre"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="chap-desc">Description (optionnelle)</label>
+              <textarea
+                id="chap-desc"
+                rows="2"
+                class="form-control"
+                placeholder="Points abordés, exercices pratiques…"
+                [(ngModel)]="chapterDescription"
+                name="chapterDescription"
+              ></textarea>
+            </div>
+
+            <div class="chapter-form-actions">
+              <button
+                type="submit"
+                class="btn btn-primary"
+                [disabled]="savingChapter() || !chapterTitre.trim() || chapterOrdre < 1"
+              >
+                <ng-container *ngIf="!savingChapter()">
+                  {{ editingChapterId() ? 'Enregistrer le chapitre' : 'Ajouter le chapitre' }}
+                </ng-container>
+                <ng-container *ngIf="savingChapter()">
+                  <span class="spinner"></span> Enregistrement…
+                </ng-container>
+              </button>
+              <button type="button" class="btn btn-outline" (click)="cancelChapterForm()">
+                Annuler
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Chapters List -->
+        <div class="chapters-list" *ngIf="chapitres().length > 0">
+          <div
+            class="chapter-item"
+            *ngFor="let chap of chapitres(); trackBy: trackByChapter"
+          >
+            <div class="chapter-item-left">
+              <span class="chapter-order-badge">#{{ chap.ordre }}</span>
+              <div class="chapter-info">
+                <h4 class="chapter-title">{{ chap.titre }}</h4>
+                <p class="chapter-description" *ngIf="chap.description">
+                  {{ chap.description }}
+                </p>
+              </div>
+            </div>
+
+            <div class="chapter-item-actions">
+              <!-- Regular buttons -->
+              <ng-container *ngIf="confirmDeleteChapterId() !== chap.id">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline"
+                  (click)="openEditChapter(chap)"
+                  title="Modifier ce chapitre"
+                >
+                  ✏️ Modifier
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-danger-outline"
+                  (click)="requestDeleteChapter(chap.id!)"
+                  title="Supprimer ce chapitre"
+                >
+                  🗑️
+                </button>
+              </ng-container>
+
+              <!-- Confirm Delete Chapter -->
+              <ng-container *ngIf="confirmDeleteChapterId() === chap.id">
+                <div class="inline-confirm">
+                  <span class="confirm-warn">Supprimer ?</span>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-danger"
+                    (click)="confirmDeleteChapter(chap.id!)"
+                    [disabled]="deletingChapterId() === chap.id"
+                  >
+                    <ng-container *ngIf="deletingChapterId() !== chap.id">Oui</ng-container>
+                    <ng-container *ngIf="deletingChapterId() === chap.id"><span class="spinner spinner-sm"></span></ng-container>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline" (click)="cancelDeleteChapter()">Non</button>
+                </div>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty Chapters State -->
+        <div class="empty-chapters" *ngIf="chapitres().length === 0 && !showChapterForm()">
+          <div class="empty-chapters-icon">📖</div>
+          <h4 class="empty-chapters-title">Aucun chapitre pour le moment</h4>
+          <p class="empty-chapters-text">
+            Structurez votre formation en ajoutant des modules ou chapitres d'apprentissage.
+          </p>
+          <button type="button" class="btn btn-outline" (click)="openAddChapter()">
+            ➕ Ajouter le premier chapitre
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+</div>

@@ -1,0 +1,198 @@
+<div class="container main-content">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Mes Inscriptions</h1>
+      <p class="page-subtitle">Suivez l'état de vos inscriptions et vos positions sur les listes d'attente.</p>
+      <p class="waiting-legend-strip">
+        Si une place se libère, le premier de la file d'attente est promu automatiquement.
+      </p>
+    </div>
+    <div class="active-learner-badge" *ngIf="learnerState.currentLearner()">
+      <span class="learner-avatar">👤</span>
+      <span>{{ learnerState.currentLearner()?.prenom }} {{ learnerState.currentLearner()?.nom }}</span>
+    </div>
+  </div>
+
+  <!-- Warning: No Learner Selected -->
+  <div class="card card-body no-learner-banner" *ngIf="!learnerState.currentLearner()">
+    <div class="banner-icon">👤</div>
+    <div>
+      <h3 class="banner-title">Aucun apprenant actif sélectionné</h3>
+      <p class="banner-text">
+        Veuillez choisir un profil apprenant dans le menu en haut à droite pour consulter vos inscriptions et listes d'attente.
+      </p>
+    </div>
+  </div>
+
+  <ng-container *ngIf="learnerState.currentLearner()">
+
+    <!-- Quick Stats Cards -->
+    <div class="inscr-stats" *ngIf="!loading() && inscriptions().length > 0">
+      <div class="stat-pill" [class.active]="activeTab() === 'ALL'" (click)="activeTab.set('ALL')">
+        <span class="stat-count">{{ inscriptions().length }}</span>
+        <span class="stat-name">Toutes</span>
+      </div>
+      <div class="stat-pill pill-success" [class.active]="activeTab() === 'CONFIRMEE'" (click)="activeTab.set('CONFIRMEE')">
+        <span class="stat-count">{{ confirmedCount() }}</span>
+        <span class="stat-name">✅ Confirmées</span>
+      </div>
+      <div class="stat-pill pill-warning" [class.active]="activeTab() === 'EN_ATTENTE'" (click)="activeTab.set('EN_ATTENTE')">
+        <span class="stat-count">{{ waitingCount() }}</span>
+        <span class="stat-name">⏳ En attente</span>
+      </div>
+      <div class="stat-pill pill-neutral" [class.active]="activeTab() === 'ANNULEE'" (click)="activeTab.set('ANNULEE')">
+        <span class="stat-count">{{ cancelledCount() }}</span>
+        <span class="stat-name">Annulées</span>
+      </div>
+    </div>
+
+    <!-- Loading Skeleton -->
+    <div class="loading-state" *ngIf="loading()">
+      <div class="skeleton-cards">
+        <div class="skeleton sk-inscr" *ngFor="let i of [1,2,3]"></div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state card card-body" *ngIf="!loading() && filteredInscriptions().length === 0">
+      <div class="empty-state-icon">🎓</div>
+      <h2 class="empty-state-title">
+        {{ inscriptions().length === 0 ? 'Aucune inscription enregistrée' : 'Aucune inscription dans cette catégorie' }}
+      </h2>
+      <p class="empty-state-text">
+        {{ inscriptions().length === 0 
+          ? 'Vous n\'êtes inscrit à aucune session pour le moment. Découvrez nos programmes dans le catalogue !' 
+          : 'Modifiez votre filtre pour afficher les autres inscriptions.' }}
+      </p>
+      <div class="empty-state-actions" *ngIf="inscriptions().length === 0">
+        <a routerLink="/formations" class="btn btn-primary">
+          📚 Parcourir le catalogue
+        </a>
+      </div>
+    </div>
+
+    <!-- Inscriptions List -->
+    <div class="inscriptions-list" *ngIf="!loading() && filteredInscriptions().length > 0">
+      <div
+        class="card inscr-card"
+        *ngFor="let item of filteredInscriptions(); trackBy: trackByInscr"
+        [ngClass]="{
+          'card-confirmed': item.statut === 'CONFIRMEE',
+          'card-waiting': item.statut === 'EN_ATTENTE',
+          'card-cancelled': item.statut === 'ANNULEE'
+        }"
+      >
+        <div class="card-body inscr-card-body">
+
+          <!-- Left Info: Formation & Session -->
+          <div class="inscr-main">
+            <div class="inscr-header">
+              <span class="badge badge-primary" *ngIf="item.session?.formation?.categorie">
+                {{ item.session?.formation?.categorie?.nom }}
+              </span>
+              <span class="badge" [ngClass]="{
+                'badge-success': item.statut === 'CONFIRMEE',
+                'badge-warning': item.statut === 'EN_ATTENTE',
+                'badge-neutral': item.statut === 'ANNULEE'
+              }">
+                <ng-container *ngIf="item.statut === 'CONFIRMEE'">✅ Inscription confirmée</ng-container>
+                <ng-container *ngIf="item.statut === 'EN_ATTENTE'">
+                  ⏳ Liste d'attente — Position #{{ item.positionFile }}
+                </ng-container>
+                <ng-container *ngIf="item.statut === 'ANNULEE'">Annulée</ng-container>
+              </span>
+            </div>
+
+            <h3 class="inscr-formation-title">
+              <a
+                *ngIf="item.session?.formation"
+                [routerLink]="['/formations', item.session?.formation?.id]"
+                class="formation-link"
+              >
+                {{ item.session?.formation?.titre }}
+              </a>
+              <span *ngIf="!item.session?.formation">Formation non spécifiée</span>
+            </h3>
+
+            <div class="inscr-meta-grid">
+              <div class="meta-item">
+                <span class="meta-label">Période</span>
+                <span class="meta-val">
+                  📅 {{ formatDate(item.session?.dateDebut) }} → {{ formatDate(item.session?.dateFin) }}
+                </span>
+              </div>
+
+              <div class="meta-item" *ngIf="item.session?.heureDebut || item.session?.heureFin">
+                <span class="meta-label">Horaires</span>
+                <span class="meta-val">
+                  🕒 {{ formatTime(item.session?.heureDebut) || '00h00' }} - {{ formatTime(item.session?.heureFin) || 'Fin' }}
+                </span>
+              </div>
+
+              <div class="meta-item">
+                <span class="meta-label">Date d'inscription</span>
+                <span class="meta-val">
+                  {{ formatDate(item.dateInscription) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Waiting list informational callout -->
+            <div class="waiting-callout" *ngIf="item.statut === 'EN_ATTENTE'">
+              <span class="callout-icon">💡</span>
+              <div class="callout-content">
+                <strong>Vous êtes en position #{{ item.positionFile }} sur la liste d'attente.</strong>
+                <p>Si un apprenant confirmé annule sa place, vous serez <em>automatiquement promu</em> et votre place sera confirmée sans action requise de votre part.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Action: Cancel -->
+          <div class="inscr-actions">
+            <!-- Normal cancel button -->
+            <ng-container *ngIf="confirmCancelId() !== item.id && item.statut !== 'ANNULEE'">
+              <button
+                type="button"
+                class="btn btn-sm"
+                [ngClass]="item.statut === 'CONFIRMEE' ? 'btn-danger-outline' : 'btn-outline'"
+                (click)="requestCancel(item.id!)"
+              >
+                {{ item.statut === 'CONFIRMEE' ? 'Annuler mon inscription' : 'Quitter la liste d\'attente' }}
+              </button>
+            </ng-container>
+
+            <!-- Inline confirm cancel -->
+            <ng-container *ngIf="confirmCancelId() === item.id">
+              <div class="inline-confirm-box">
+                <span class="confirm-prompt">Confirmer l'annulation ?</span>
+                <div class="confirm-btn-group">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-danger"
+                    (click)="confirmCancel(item)"
+                    [disabled]="cancellingId() === item.id"
+                  >
+                    <ng-container *ngIf="cancellingId() !== item.id">Oui, annuler</ng-container>
+                    <ng-container *ngIf="cancellingId() === item.id"><span class="spinner spinner-sm"></span></ng-container>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline" (click)="abortCancel()">
+                    Retour
+                  </button>
+                </div>
+              </div>
+            </ng-container>
+
+            <span class="cancelled-tag" *ngIf="item.statut === 'ANNULEE'">
+              Inscription inactive
+            </span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+</div>

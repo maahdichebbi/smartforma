@@ -1,0 +1,67 @@
+<header class="navbar-wrapper">
+  <div class="container navbar-container">
+    <div class="navbar-left">
+      <a [routerLink]="auth.isAdmin() ? '/admin' : '/'" class="brand-logo">
+        <span class="logo-icon">⚡</span>
+        <span class="brand-name">Smart<strong>Forma</strong></span>
+      </a>
+
+      <nav class="nav-links">
+        <ng-container *ngIf="!auth.isAdmin()">
+          <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-link">
+            Accueil
+          </a>
+          <a routerLink="/formations" routerLinkActive="active" class="nav-link">
+            Catalogue
+          </a>
+          <a routerLink="/mes-inscriptions" routerLinkActive="active" class="nav-link" *ngIf="auth.isLearner()">
+            Mes Inscriptions
+          </a>
+        </ng-container>
+
+        <ng-container *ngIf="auth.isAdmin()">
+          <a routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-link">
+            Vue d'ensemble
+          </a>
+          <a routerLink="/admin/formations" routerLinkActive="active" class="nav-link">
+            Formations
+          </a>
+          <a routerLink="/admin/categories" routerLinkActive="active" class="nav-link">
+            Catégories
+          </a>
+          <a routerLink="/admin/sessions" routerLinkActive="active" class="nav-link">
+            Sessions
+          </a>
+          <a routerLink="/admin/inscriptions" routerLinkActive="active" class="nav-link">
+            Inscriptions
+          </a>
+        </ng-container>
+      </nav>
+    </div>
+
+    <div class="navbar-right">
+      <ng-container *ngIf="!auth.isAuthenticated()">
+        <a routerLink="/login" class="btn btn-sm btn-outline">Connexion</a>
+        <a routerLink="/register" class="btn btn-sm btn-primary">Inscription</a>
+      </ng-container>
+
+      <ng-container *ngIf="auth.isAuthenticated()">
+        <div class="user-chip-wrap" (click)="$event.stopPropagation()">
+          <button type="button" class="user-chip" (click)="toggleMenu($event)" [attr.aria-expanded]="menuOpen()">
+            <span class="user-avatar">{{ initials() }}</span>
+            <span class="user-meta">
+              <span class="user-name">{{ displayName() }}</span>
+              <span class="user-role">{{ roleLabel() }}</span>
+            </span>
+          </button>
+          <div class="user-menu" *ngIf="menuOpen()">
+            <div class="user-menu-role">{{ roleLabel() }}</div>
+            <div class="user-menu-email">{{ auth.currentUser()?.email }}</div>
+            <button type="button" class="user-menu-logout" (click)="logout()">Déconnexion</button>
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline navbar-logout" (click)="logout()">Déconnexion</button>
+      </ng-container>
+    </div>
+  </div>
+</header>

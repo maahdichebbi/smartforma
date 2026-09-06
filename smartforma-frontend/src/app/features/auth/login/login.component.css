@@ -1,0 +1,69 @@
+.auth-page {
+  min-height: calc(100vh - 72px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 3rem 1.5rem 4rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+}
+
+.auth-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.auth-subtitle {
+  margin-top: 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.auth-submit {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.auth-footer {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-field .form-control {
+  padding-right: 2.75rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.6rem;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: inline-flex;
+  line-height: 0;
+}
+
+.password-toggle:hover {
+  color: var(--text-main);
+}
+
+.caps-hint {
+  margin-top: 0.4rem;
+  font-size: 0.8125rem;
+  color: var(--warning-text);
+  background: var(--warning-light);
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.6rem;
+}

@@ -1,0 +1,178 @@
+<div class="container main-content">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Catalogue des Formations</h1>
+      <p class="page-subtitle">
+        Trouvez la formation qui correspond à vos objectifs.
+        <ng-container *ngIf="!loading() && formations().length > 0">
+          &nbsp;—&nbsp;<strong>{{ formations().length }}</strong> formation{{ formations().length > 1 ? 's' : '' }} trouvée{{ formations().length > 1 ? 's' : '' }}.
+        </ng-container>
+      </p>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <!-- Search -->
+    <div class="search-box">
+      <svg class="search-icon" width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+      </svg>
+      <input
+        id="catalogue-search"
+        type="text"
+        class="search-input"
+        placeholder="Rechercher une formation…"
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="onSearchChange()"
+      />
+      <button
+        *ngIf="searchTerm"
+        class="search-clear"
+        (click)="searchTerm = ''; onFilterChange()"
+        aria-label="Effacer la recherche"
+      >
+        &times;
+      </button>
+    </div>
+
+    <!-- Category Filter -->
+    <select
+      id="filter-categorie"
+      class="filter-select"
+      [(ngModel)]="selectedCategorieId"
+      (ngModelChange)="onFilterChange()"
+    >
+      <option value="">Toutes les catégories</option>
+      <option *ngFor="let cat of categories()" [value]="cat.id">
+        {{ cat.nom }}
+      </option>
+    </select>
+
+    <!-- Niveau Filter -->
+    <select
+      id="filter-niveau"
+      class="filter-select"
+      [(ngModel)]="selectedNiveau"
+      (ngModelChange)="onFilterChange()"
+    >
+      <option value="">Tous les niveaux</option>
+      <option value="DEBUTANT">🌱 Débutant</option>
+      <option value="INTERMEDIAIRE">⚡ Intermédiaire</option>
+      <option value="AVANCE">🏆 Avancé</option>
+    </select>
+
+    <!-- Sort -->
+    <select
+      id="filter-sort"
+      class="filter-select"
+      [(ngModel)]="sortBy"
+    >
+      <option value="relevance" *ngIf="learnerState.currentLearner()">🎯 Pertinence pour mon profil</option>
+      <option value="titre">Trier : Nom A–Z</option>
+      <option value="prix-asc">Trier : Prix croissant</option>
+      <option value="prix-desc">Trier : Prix décroissant</option>
+      <option value="duree">Trier : Durée</option>
+    </select>
+
+    <!-- Clear filters -->
+    <button
+      *ngIf="hasActiveFilters()"
+      class="btn btn-sm btn-outline clear-btn"
+      (click)="clearFilters()"
+    >
+      Réinitialiser
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading()">
+    <div class="skeleton-grid">
+      <div class="skeleton-card" *ngFor="let i of [1,2,3,4,5,6]">
+        <div class="skeleton skeleton-category"></div>
+        <div class="skeleton skeleton-title"></div>
+        <div class="skeleton skeleton-desc"></div>
+        <div class="skeleton skeleton-desc short"></div>
+        <div class="skeleton skeleton-footer"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div class="empty-state" *ngIf="!loading() && error()">
+    <div class="empty-state-icon">⚠️</div>
+    <h2 class="empty-state-title">Erreur de connexion</h2>
+    <p class="empty-state-text">{{ error() }}</p>
+    <button class="btn btn-primary" (click)="onFilterChange()">Réessayer</button>
+  </div>
+
+  <!-- Empty Results -->
+  <div class="empty-state" *ngIf="!loading() && !error() && formations().length === 0">
+    <div class="empty-state-icon">🔍</div>
+    <h2 class="empty-state-title">Aucune formation trouvée</h2>
+    <p class="empty-state-text">
+      Essayez de modifier vos critères de recherche ou de réinitialiser les filtres.
+    </p>
+    <button class="btn btn-outline" (click)="clearFilters()">
+      Effacer les filtres
+    </button>
+  </div>
+
+  <!-- Formations Grid -->
+  <div class="formations-grid" *ngIf="!loading() && !error() && formations().length > 0">
+    <a
+      *ngFor="let f of sortedFormations(); trackBy: trackByFormation"
+      [routerLink]="['/formations', f.id]"
+      class="formation-card"
+    >
+      <!-- Top Badges Row -->
+      <div class="fc-badges-top">
+        <!-- Category tag -->
+        <div class="fc-category" *ngIf="f.categorie">
+          {{ f.categorie.nom }}
+        </div>
+
+        <!-- MLA Match Pill -->
+        <div
+          class="card-rec-pill"
+          *ngIf="recommendationsMap().has(f.id!)"
+          [title]="recommendationsMap().get(f.id!)?.explications?.[0] || ''"
+        >
+          ⚡ {{ recommendationsMap().get(f.id!)?.score }}% Match
+        </div>
+      </div>
+
+      <!-- Title -->
+      <h3 class="fc-title">{{ f.titre }}</h3>
+
+      <!-- Description (truncated) -->
+      <p class="fc-description">{{ f.description }}</p>
+
+      <!-- Tags row -->
+      <div class="fc-tags">
+        <span class="badge" [ngClass]="niveauBadgeClass(f.niveau)">
+          {{ niveauLabel(f.niveau) }}
+        </span>
+        <span class="fc-duration" *ngIf="f.dureeHeures">
+          🕒 {{ f.dureeHeures }}h
+        </span>
+      </div>
+
+      <!-- Footer: price + CTA -->
+      <div class="fc-footer">
+        <div class="fc-price">
+          {{ f.prix | number: '1.2-2' }} TND
+        </div>
+        <span class="fc-cta">
+          Voir le détail
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+          </svg>
+        </span>
+      </div>
+    </a>
+  </div>
+
+</div>

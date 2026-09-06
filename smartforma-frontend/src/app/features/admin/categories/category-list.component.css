@@ -1,0 +1,116 @@
+/* ── Form Card ─────────────────────────────────────── */
+.form-card {
+  margin-bottom: 2rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.form-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group-grow {
+  flex: 1;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+/* ── Category Table ────────────────────────────────── */
+.cat-name {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.cat-desc {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.col-actions {
+  text-align: right;
+  white-space: nowrap;
+  min-width: 220px;
+}
+
+.col-actions .btn {
+  margin-left: 0.5rem;
+}
+
+.col-actions .btn:first-child {
+  margin-left: 0;
+}
+
+.confirm-text {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--danger);
+  margin-right: 0.5rem;
+}
+
+/* ── Spinner ───────────────────────────────────────── */
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.spinner-sm {
+  width: 12px;
+  height: 12px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Skeleton ──────────────────────────────────────── */
+.skeleton-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.sk-row {
+  height: 52px;
+}
+
+/* ── Responsive ────────────────────────────────────── */
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  .col-actions {
+    min-width: unset;
+  }
+}

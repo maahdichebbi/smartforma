@@ -1,0 +1,172 @@
+<div class="container main-content">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Administration</h1>
+      <p class="page-subtitle">Vue d'ensemble du catalogue de formation.</p>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="admin-stats" *ngIf="!loading()">
+    <div class="stat-card">
+      <div class="stat-card-icon" style="background: var(--primary-light); color: var(--primary);">📚</div>
+      <div class="stat-card-body">
+        <div class="stat-card-number">{{ totalFormations() }}</div>
+        <div class="stat-card-label">Formations</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon" style="background: var(--success-light); color: var(--success-text);">🏷️</div>
+      <div class="stat-card-body">
+        <div class="stat-card-number">{{ totalCategories() }}</div>
+        <div class="stat-card-label">Catégories</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon" style="background: var(--warning-light); color: var(--warning-text);">📖</div>
+      <div class="stat-card-body">
+        <div class="stat-card-number">{{ totalChapters() }}</div>
+        <div class="stat-card-label">Chapitres</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon" style="background: #e0f2fe; color: #0284c7;">📅</div>
+      <div class="stat-card-body">
+        <div class="stat-card-number">{{ totalSessions() }}</div>
+        <div class="stat-card-label">Sessions</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <section class="admin-section">
+    <h2 class="section-title">Actions rapides</h2>
+    <div class="quick-actions-grid">
+      <a routerLink="/admin/categories" class="action-card">
+        <div class="action-icon">🏷️</div>
+        <div class="action-content">
+          <div class="action-title">Catégories</div>
+          <div class="action-desc">Gérer les catégories de formation</div>
+        </div>
+        <svg class="action-arrow" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+      <a routerLink="/admin/formations" class="action-card">
+        <div class="action-icon">📚</div>
+        <div class="action-content">
+          <div class="action-title">Formations</div>
+          <div class="action-desc">Gérer les formations et chapitres</div>
+        </div>
+        <svg class="action-arrow" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+      <a routerLink="/admin/sessions" class="action-card">
+        <div class="action-icon">📅</div>
+        <div class="action-content">
+          <div class="action-title">Sessions</div>
+          <div class="action-desc">Planifier les dates et capacités</div>
+        </div>
+        <svg class="action-arrow" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+      <a routerLink="/admin/formations/new" class="action-card action-card-primary">
+        <div class="action-icon">➕</div>
+        <div class="action-content">
+          <div class="action-title">Nouvelle formation</div>
+          <div class="action-desc">Créer une formation dans le catalogue</div>
+        </div>
+        <svg class="action-arrow" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- Exports & Rapports -->
+  <section class="admin-section" *ngIf="!loading()">
+    <div class="section-header">
+      <h2 class="section-title">Exports & Rapports Analytiques</h2>
+      <span class="text-muted" style="font-size: 0.85rem;">Génération instantanée PDF / Excel</span>
+    </div>
+    <div class="quick-actions-grid">
+      <button type="button" class="action-card" (click)="exportCatalogPdf()" [disabled]="exportingCatalog()" style="text-align: left; background: #fff; width: 100%;">
+        <div class="action-icon">📄</div>
+        <div class="action-content">
+          <div class="action-title">
+            <span *ngIf="!exportingCatalog()">Rapport Catalogue (PDF)</span>
+            <span *ngIf="exportingCatalog()">⏳ Téléchargement...</span>
+          </div>
+          <div class="action-desc">Synthèse complète des formations et volumes</div>
+        </div>
+      </button>
+
+      <button type="button" class="action-card" (click)="exportApprenantsExcel()" [disabled]="exportingApprenants()" style="text-align: left; background: #fff; width: 100%;">
+        <div class="action-icon">👥</div>
+        <div class="action-content">
+          <div class="action-title">
+            <span *ngIf="!exportingApprenants()">Roster Apprenants (Excel)</span>
+            <span *ngIf="exportingApprenants()">⏳ Téléchargement...</span>
+          </div>
+          <div class="action-desc">Liste complète, profils et compétences</div>
+        </div>
+      </button>
+
+      <button type="button" class="action-card" (click)="exportSessionsExcel()" [disabled]="exportingSessions()" style="text-align: left; background: #fff; width: 100%;">
+        <div class="action-icon">📊</div>
+        <div class="action-content">
+          <div class="action-title">
+            <span *ngIf="!exportingSessions()">Planning Sessions (Excel)</span>
+            <span *ngIf="exportingSessions()">⏳ Téléchargement...</span>
+          </div>
+          <div class="action-desc">Taux de remplissage et dates des sessions</div>
+        </div>
+      </button>
+    </div>
+  </section>
+
+  <!-- Recent Formations -->
+  <section class="admin-section" *ngIf="!loading() && formations().length > 0">
+    <div class="section-header">
+      <h2 class="section-title">Dernières formations</h2>
+      <a routerLink="/admin/formations" class="btn btn-sm btn-outline">Voir tout</a>
+    </div>
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Titre</th>
+            <th>Catégorie</th>
+            <th>Niveau</th>
+            <th>Prix</th>
+            <th>Chapitres</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let f of formations().slice(0, 5)">
+            <td>
+              <a [routerLink]="['/admin/formations', f.id, 'edit']" class="table-link">{{ f.titre }}</a>
+            </td>
+            <td>
+              <span class="badge badge-primary" *ngIf="f.categorie">{{ f.categorie.nom }}</span>
+            </td>
+            <td>
+              <span class="badge" [ngClass]="{
+                'badge-success': f.niveau === 'DEBUTANT',
+                'badge-warning': f.niveau === 'INTERMEDIAIRE',
+                'badge-danger': f.niveau === 'AVANCE'
+              }">{{ f.niveau }}</span>
+            </td>
+            <td>{{ f.prix | number: '1.2-2' }} TND</td>
+            <td>{{ f.chapitres?.length ?? 0 }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>

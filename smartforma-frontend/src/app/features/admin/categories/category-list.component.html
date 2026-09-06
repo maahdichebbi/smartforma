@@ -1,0 +1,129 @@
+<div class="container main-content">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Catégories</h1>
+      <p class="page-subtitle">Gérez les catégories de votre catalogue de formation.</p>
+    </div>
+    <button class="btn btn-primary" (click)="openCreateForm()" *ngIf="!showForm()">
+      ➕ Nouvelle catégorie
+    </button>
+  </div>
+
+  <!-- Create / Edit Form -->
+  <div class="card form-card" *ngIf="showForm()">
+    <div class="card-header">
+      <h3 class="form-card-title">
+        {{ editingId() ? 'Modifier la catégorie' : 'Nouvelle catégorie' }}
+      </h3>
+    </div>
+    <div class="card-body">
+      <form (ngSubmit)="submitForm()" #catForm="ngForm">
+        <div class="form-row">
+          <div class="form-group form-group-grow">
+            <label class="form-label" for="cat-nom">Nom *</label>
+            <input
+              id="cat-nom"
+              type="text"
+              class="form-control"
+              placeholder="ex: Développement Web"
+              [(ngModel)]="formNom"
+              name="nom"
+              required
+              #nomField="ngModel"
+            />
+            <div class="form-error" *ngIf="nomField.invalid && nomField.touched">
+              Le nom est obligatoire.
+            </div>
+          </div>
+          <div class="form-group form-group-grow">
+            <label class="form-label" for="cat-desc">Description</label>
+            <input
+              id="cat-desc"
+              type="text"
+              class="form-control"
+              placeholder="Description optionnelle"
+              [(ngModel)]="formDescription"
+              name="description"
+            />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" [disabled]="saving() || !formNom.trim()">
+            <ng-container *ngIf="!saving()">
+              {{ editingId() ? 'Enregistrer' : 'Créer' }}
+            </ng-container>
+            <ng-container *ngIf="saving()">
+              <span class="spinner"></span> Enregistrement…
+            </ng-container>
+          </button>
+          <button type="button" class="btn btn-outline" (click)="cancelForm()">Annuler</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-state" *ngIf="loading()">
+    <div class="skeleton-table">
+      <div class="skeleton sk-row" *ngFor="let i of [1,2,3,4]"></div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!loading() && categories().length === 0">
+    <div class="empty-state-icon">🏷️</div>
+    <h2 class="empty-state-title">Aucune catégorie</h2>
+    <p class="empty-state-text">Créez votre première catégorie pour organiser le catalogue.</p>
+    <button class="btn btn-primary" (click)="openCreateForm()">➕ Créer une catégorie</button>
+  </div>
+
+  <!-- Categories Table -->
+  <div class="table-container" *ngIf="!loading() && categories().length > 0">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Description</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let cat of categories(); trackBy: trackByCategory">
+          <td>
+            <span class="cat-name">{{ cat.nom }}</span>
+          </td>
+          <td>
+            <span class="cat-desc">{{ cat.description || '—' }}</span>
+          </td>
+          <td class="col-actions">
+            <!-- Normal actions -->
+            <ng-container *ngIf="confirmDeleteId() !== cat.id">
+              <button class="btn btn-sm btn-outline" (click)="openEditForm(cat)" title="Modifier">
+                ✏️ Modifier
+              </button>
+              <button class="btn btn-sm btn-danger-outline" (click)="requestDelete(cat.id!)" title="Supprimer">
+                🗑️ Supprimer
+              </button>
+            </ng-container>
+            <!-- Confirm delete -->
+            <ng-container *ngIf="confirmDeleteId() === cat.id">
+              <span class="confirm-text">Confirmer ?</span>
+              <button
+                class="btn btn-sm btn-danger"
+                (click)="confirmDelete(cat.id!)"
+                [disabled]="deletingId() === cat.id"
+              >
+                <ng-container *ngIf="deletingId() !== cat.id">Oui, supprimer</ng-container>
+                <ng-container *ngIf="deletingId() === cat.id"><span class="spinner spinner-sm"></span></ng-container>
+              </button>
+              <button class="btn btn-sm btn-outline" (click)="cancelDelete()">Non</button>
+            </ng-container>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>

@@ -1,0 +1,273 @@
+<div class="container main-content">
+
+  <!-- Back link -->
+  <a routerLink="/formations" class="back-link">
+    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+    </svg>
+    Retour au catalogue
+  </a>
+
+  <!-- Loading State -->
+  <div class="detail-skeleton" *ngIf="loadingFormation()">
+    <div class="skeleton sk-badge"></div>
+    <div class="skeleton sk-title"></div>
+    <div class="skeleton sk-desc"></div>
+    <div class="skeleton sk-desc mid"></div>
+  </div>
+
+  <!-- Error State -->
+  <div class="empty-state" *ngIf="!loadingFormation() && errorFormation()">
+    <div class="empty-state-icon">🚫</div>
+    <h2 class="empty-state-title">Formation introuvable</h2>
+    <p class="empty-state-text">{{ errorFormation() }}</p>
+    <a routerLink="/formations" class="btn btn-primary">Retour au catalogue</a>
+  </div>
+
+  <!-- Formation Detail -->
+  <ng-container *ngIf="!loadingFormation() && !errorFormation() && formation()">
+    <div class="detail-layout">
+
+      <!-- Main Content -->
+      <div class="detail-main">
+
+        <!-- Header -->
+        <div class="detail-header">
+          <div class="detail-category" *ngIf="formation()!.categorie">
+            {{ formation()!.categorie!.nom }}
+          </div>
+          <h1 class="detail-title">{{ formation()!.titre }}</h1>
+          <p class="detail-description">{{ formation()!.description }}</p>
+          <div class="detail-tags">
+            <span class="badge" [ngClass]="niveauBadgeClass(formation()!.niveau)">
+              {{ niveauLabel(formation()!.niveau) }}
+            </span>
+            <span class="detail-meta-chip" *ngIf="formation()!.dureeHeures">
+              🕒 {{ formation()!.dureeHeures }} heures
+            </span>
+          </div>
+        </div>
+
+        <!-- Chapters Section -->
+        <section class="detail-section">
+          <h2 class="section-heading">
+            <span class="section-icon">📖</span>
+            Programme de la formation
+          </h2>
+
+          <!-- Chapters Loading -->
+          <div class="chapters-skeleton" *ngIf="loadingFormation()">
+            <div class="skeleton ch-sk" *ngFor="let i of [1,2,3]"></div>
+          </div>
+
+          <!-- No Chapters -->
+          <div class="empty-inline" *ngIf="!loadingFormation() && (!formation()!.chapitres || formation()!.chapitres!.length === 0)">
+            <span class="empty-inline-icon">📝</span>
+            <span>Le programme de cette formation sera publié prochainement.</span>
+          </div>
+
+          <!-- Chapter List -->
+          <div class="chapters-list" *ngIf="formation()!.chapitres && formation()!.chapitres!.length > 0">
+            <div
+              class="chapter-item"
+              *ngFor="let ch of formation()!.chapitres; let i = index"
+            >
+              <div class="chapter-num">{{ ch.ordre }}</div>
+              <div class="chapter-body">
+                <div class="chapter-title">{{ ch.titre }}</div>
+                <div class="chapter-desc" *ngIf="ch.description">{{ ch.description }}</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Sessions Section -->
+        <section class="detail-section" id="sessions">
+          <h2 class="section-heading">
+            <span class="section-icon">📅</span>
+            Sessions disponibles
+          </h2>
+
+          <!-- Sessions loading -->
+          <div class="sessions-skeleton" *ngIf="loadingSessions()">
+            <div class="skeleton sess-sk" *ngFor="let i of [1,2]"></div>
+          </div>
+
+          <!-- No sessions -->
+          <div class="empty-inline" *ngIf="!loadingSessions() && sessions().length === 0">
+            <span class="empty-inline-icon">📆</span>
+            <span>Aucune session planifiée pour le moment. Revenez bientôt !</span>
+          </div>
+
+          <!-- Sessions Grid -->
+          <div class="sessions-grid" *ngIf="!loadingSessions() && sessions().length > 0">
+            <div
+              *ngFor="let s of sessions()"
+              class="session-card"
+              [ngClass]="{
+                'session-past': isSessionPast(s),
+                'session-registered': isConfirmed(s),
+                'session-waiting': isWaiting(s)
+              }"
+            >
+              <!-- Status badge -->
+              <div class="session-status-badge badge-confirmed" *ngIf="isConfirmed(s)">
+                Confirmée
+              </div>
+              <div class="session-status-badge badge-waiting" *ngIf="isWaiting(s)">
+                File d'attente #{{ getWaitingPosition(s) }}
+              </div>
+              <div class="session-status-badge badge-past" *ngIf="!isConfirmed(s) && !isWaiting(s) && isSessionPast(s)">
+                Session terminée
+              </div>
+              <div class="session-status-badge badge-full" *ngIf="!isConfirmed(s) && !isWaiting(s) && !isSessionPast(s) && isSessionFull(s)">
+                Session complète
+              </div>
+
+              <!-- Dates -->
+              <div class="session-dates">
+                <div class="session-date-block">
+                  <div class="date-label">Début</div>
+                  <div class="date-value">{{ formatDate(s.dateDebut) }}</div>
+                  <div class="date-time" *ngIf="s.heureDebut">à {{ formatTime(s.heureDebut) }}</div>
+                </div>
+                <div class="session-date-arrow">→</div>
+                <div class="session-date-block">
+                  <div class="date-label">Fin</div>
+                  <div class="date-value">{{ formatDate(s.dateFin) }}</div>
+                  <div class="date-time" *ngIf="s.heureFin">à {{ formatTime(s.heureFin) }}</div>
+                </div>
+              </div>
+
+              <!-- Capacity & Occupancy -->
+              <div class="session-capacity">
+                <div class="capacity-row">
+                  <span class="capacity-icon">👥</span>
+                  <span class="capacity-text">
+                    Capacité : <strong>{{ s.capacite }} places</strong>
+                    <span class="capacity-detail">
+                      ({{ getOccupiedSeats(s) }} occupée{{ getOccupiedSeats(s) > 1 ? 's' : '' }},
+                      <strong>{{ getRemainingSeats(s) }} restante{{ getRemainingSeats(s) > 1 ? 's' : '' }}</strong>)
+                    </span>
+                  </span>
+                </div>
+                <div class="waiting-count-tag" *ngIf="getWaitingCount(s) > 0">
+                  ⏳ {{ getWaitingCount(s) }} apprenant{{ getWaitingCount(s) > 1 ? 's' : '' }} en attente
+                </div>
+              </div>
+
+              <!-- CTA Actions -->
+              <div class="session-action">
+                <p
+                  class="waiting-legend waiting-legend-inline"
+                  *ngIf="!isSessionPast(s) && !isConfirmed(s)"
+                >
+                  Si une place se libère, le premier de la file d'attente est promu automatiquement.
+                </p>
+                <!-- Already Confirmed -->
+                <div class="registered-badge badge-confirmed-pill" *ngIf="isConfirmed(s)">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  Confirmée
+                </div>
+
+                <!-- In Waiting List -->
+                <div class="registered-badge badge-waiting-pill" *ngIf="isWaiting(s)">
+                  File d'attente #{{ getWaitingPosition(s) }}
+                </div>
+
+                <!-- Past session -->
+                <span class="session-past-msg" *ngIf="!isConfirmed(s) && !isWaiting(s) && isSessionPast(s)">
+                  🔒 Session fermée — inscriptions terminées
+                </span>
+
+                <!-- Register button (seats available) -->
+                <button
+                  *ngIf="learnerState.currentLearner() && !isConfirmed(s) && !isWaiting(s) && !isSessionPast(s) && !isSessionFull(s)"
+                  class="btn btn-primary register-btn"
+                  [disabled]="registeringSessionId() === s.id"
+                  (click)="registerForSession(s)"
+                >
+                  <ng-container *ngIf="registeringSessionId() !== s.id">
+                    S'inscrire à cette session
+                  </ng-container>
+                  <ng-container *ngIf="registeringSessionId() === s.id">
+                    <span class="spinner"></span>
+                    Inscription en cours…
+                  </ng-container>
+                </button>
+
+                <!-- Join Waiting List button (full session) -->
+                <button
+                  *ngIf="learnerState.currentLearner() && !isConfirmed(s) && !isWaiting(s) && !isSessionPast(s) && isSessionFull(s)"
+                  class="btn btn-warning register-btn"
+                  [disabled]="registeringSessionId() === s.id"
+                  (click)="registerForSession(s)"
+                  title="Session complète — Rejoindre la liste d'attente pour être promu automatiquement"
+                >
+                  <ng-container *ngIf="registeringSessionId() !== s.id">
+                    ⏳ Rejoindre la liste d'attente
+                  </ng-container>
+                  <ng-container *ngIf="registeringSessionId() === s.id">
+                    <span class="spinner"></span>
+                    Enregistrement en attente…
+                  </ng-container>
+                </button>
+
+                <!-- No learner selected -->
+                <p class="no-learner-msg" *ngIf="!learnerState.currentLearner() && !isSessionPast(s) && !isConfirmed(s) && !isWaiting(s)">
+                  <a routerLink="/login" [queryParams]="{ returnUrl: router.url }">Connectez-vous</a>
+                  pour vous inscrire à cette session.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="detail-sidebar">
+        <div class="sidebar-card">
+          <div class="sidebar-price">{{ formation()!.prix | number: '1.2-2' }} TND</div>
+          <div class="sidebar-price-label">Prix de la formation</div>
+
+          <p class="waiting-legend">
+            Si une place se libère, le premier de la file d'attente est promu automatiquement.
+          </p>
+
+          <div class="sidebar-meta">
+            <div class="sidebar-meta-row" *ngIf="formation()!.dureeHeures">
+              <span class="sidebar-meta-icon">🕒</span>
+              <span><strong>{{ formation()!.dureeHeures }} heures</strong> de cours</span>
+            </div>
+            <div class="sidebar-meta-row" *ngIf="formation()!.niveau">
+              <span class="sidebar-meta-icon">📊</span>
+              <span>Niveau <strong>{{ niveauLabel(formation()!.niveau) }}</strong></span>
+            </div>
+            <div class="sidebar-meta-row" *ngIf="formation()!.categorie">
+              <span class="sidebar-meta-icon">🏷️</span>
+              <span>Catégorie <strong>{{ formation()!.categorie!.nom }}</strong></span>
+            </div>
+            <div class="sidebar-meta-row" *ngIf="formation()!.chapitres">
+              <span class="sidebar-meta-icon">📖</span>
+              <span><strong>{{ formation()!.chapitres!.length }}</strong> chapitre{{ formation()!.chapitres!.length > 1 ? 's' : '' }}</span>
+            </div>
+            <div class="sidebar-meta-row">
+              <span class="sidebar-meta-icon">📅</span>
+              <span>
+                <strong>{{ sessions().length }}</strong>
+                session{{ sessions().length > 1 ? 's' : '' }} planifiée{{ sessions().length > 1 ? 's' : '' }}
+              </span>
+            </div>
+          </div>
+
+          <a href="#sessions" class="btn btn-primary sidebar-cta">
+            Voir les sessions
+          </a>
+        </div>
+      </aside>
+    </div>
+  </ng-container>
+</div>

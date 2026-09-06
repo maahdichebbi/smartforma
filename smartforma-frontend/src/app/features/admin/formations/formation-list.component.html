@@ -1,0 +1,204 @@
+<div class="container main-content">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Formations</h1>
+      <p class="page-subtitle">Gérez l'ensemble des cours et programmes de formation.</p>
+    </div>
+    <a routerLink="/admin/formations/new" class="btn btn-primary">
+      ➕ Nouvelle formation
+    </a>
+  </div>
+
+  <!-- Delete Error Alert if any -->
+  <div class="alert alert-danger" *ngIf="deleteErrorMessage()">
+    <span class="alert-icon">⚠️</span>
+    <div class="alert-content">
+      <strong>Attention :</strong> {{ deleteErrorMessage() }}
+    </div>
+    <button class="btn-close" (click)="deleteErrorMessage.set(null)">✕</button>
+  </div>
+
+  <!-- Filters & Search Toolbar -->
+  <div class="card toolbar-card">
+    <div class="toolbar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          class="form-control search-input"
+          placeholder="Rechercher par titre ou mot-clé…"
+          [(ngModel)]="searchTerm"
+        />
+        <button
+          *ngIf="searchTerm"
+          class="clear-btn"
+          (click)="searchTerm = ''"
+          title="Effacer"
+        >✕</button>
+      </div>
+
+      <div class="filter-group">
+        <select class="form-control select-filter" [(ngModel)]="selectedCategorieId">
+          <option [ngValue]="null">Toutes les catégories</option>
+          <option *ngFor="let cat of categories()" [ngValue]="cat.id">
+            {{ cat.nom }}
+          </option>
+        </select>
+
+        <select class="form-control select-filter" [(ngModel)]="selectedNiveau">
+          <option value="">Tous les niveaux</option>
+          <option value="DEBUTANT">Débutant</option>
+          <option value="INTERMEDIAIRE">Intermédiaire</option>
+          <option value="AVANCE">Avancé</option>
+        </select>
+
+        <button
+          *ngIf="searchTerm || selectedCategorieId !== null || selectedNiveau"
+          class="btn btn-sm btn-outline"
+          (click)="resetFilters()"
+        >
+          Réinitialiser
+        </button>
+      </div>
+    </div>
+
+    <div class="toolbar-meta" *ngIf="!loading()">
+      <span>{{ filteredFormations().length }} formation(s) affichée(s)</span>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading()">
+    <div class="skeleton-table">
+      <div class="skeleton sk-row" *ngFor="let i of [1,2,3,4,5]"></div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state card card-body" *ngIf="!loading() && filteredFormations().length === 0">
+    <div class="empty-state-icon">📚</div>
+    <h2 class="empty-state-title">
+      {{ formations().length === 0 ? 'Aucune formation créée' : 'Aucun résultat trouvé' }}
+    </h2>
+    <p class="empty-state-text">
+      {{ formations().length === 0 
+        ? 'Commencez par créer votre première formation dans le catalogue.' 
+        : 'Essayez de modifier vos critères de recherche ou réinitialisez les filtres.' }}
+    </p>
+    <div class="empty-state-actions">
+      <a
+        *ngIf="formations().length === 0"
+        routerLink="/admin/formations/new"
+        class="btn btn-primary"
+      >
+        ➕ Créer une formation
+      </a>
+      <button
+        *ngIf="formations().length > 0"
+        class="btn btn-outline"
+        (click)="resetFilters()"
+      >
+        Réinitialiser les filtres
+      </button>
+    </div>
+  </div>
+
+  <!-- Formations Table -->
+  <div class="table-container" *ngIf="!loading() && filteredFormations().length > 0">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Titre & Description</th>
+          <th>Catégorie</th>
+          <th>Niveau</th>
+          <th>Durée</th>
+          <th>Prix</th>
+          <th>Chapitres</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let f of filteredFormations(); trackBy: trackByFormation">
+          <td>
+            <div class="formation-title-group">
+              <a [routerLink]="['/admin/formations', f.id, 'edit']" class="formation-title-link">
+                {{ f.titre }}
+              </a>
+              <span class="formation-desc-preview" [title]="f.description">
+                {{ f.description }}
+              </span>
+            </div>
+          </td>
+          <td>
+            <span class="badge badge-primary" *ngIf="f.categorie">
+              {{ f.categorie.nom }}
+            </span>
+            <span class="text-muted" *ngIf="!f.categorie">—</span>
+          </td>
+          <td>
+            <span class="badge" [ngClass]="getNiveauBadgeClass(f.niveau)">
+              {{ getNiveauLabel(f.niveau) }}
+            </span>
+          </td>
+          <td>
+            <span class="duration-text">{{ f.dureeHeures || 0 }} h</span>
+          </td>
+          <td>
+            <span class="price-text">{{ f.prix | number: '1.2-2' }} TND</span>
+          </td>
+          <td>
+            <span class="badge badge-neutral">
+              {{ f.chapitres?.length ?? 0 }}
+            </span>
+          </td>
+          <td class="col-actions">
+            <!-- Normal action buttons -->
+            <ng-container *ngIf="confirmDeleteId() !== f.id">
+              <a
+                [routerLink]="['/admin/formations', f.id, 'edit']"
+                class="btn btn-sm btn-outline"
+                title="Modifier la formation et ses chapitres"
+              >
+                ✏️ Modifier
+              </a>
+              <a
+                [routerLink]="['/formations', f.id]"
+                target="_blank"
+                class="btn btn-sm btn-ghost"
+                title="Aperçu dans le catalogue apprenant"
+              >
+                👁️
+              </a>
+              <button
+                class="btn btn-sm btn-danger-outline"
+                (click)="requestDelete(f.id!)"
+                title="Supprimer la formation"
+              >
+                🗑️
+              </button>
+            </ng-container>
+
+            <!-- Confirm delete -->
+            <ng-container *ngIf="confirmDeleteId() === f.id">
+              <div class="inline-confirm">
+                <span class="confirm-warn">Supprimer ?</span>
+                <button
+                  class="btn btn-sm btn-danger"
+                  (click)="confirmDelete(f.id!)"
+                  [disabled]="deletingId() === f.id"
+                >
+                  <ng-container *ngIf="deletingId() !== f.id">Oui</ng-container>
+                  <ng-container *ngIf="deletingId() === f.id"><span class="spinner spinner-sm"></span></ng-container>
+                </button>
+                <button class="btn btn-sm btn-outline" (click)="cancelDelete()">Non</button>
+              </div>
+            </ng-container>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
