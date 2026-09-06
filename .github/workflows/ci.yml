@@ -48,6 +48,40 @@ jobs:
       - name: Run Maven tests
         run: mvn --batch-mode --no-transfer-progress test
 
+      # Verifies the most important demo security flow against a real Spring Boot process.
+      - name: Security API smoke test
+        run: |
+          mvn --batch-mode --no-transfer-progress spring-boot:run > backend.log 2>&1 &
+          app_pid=$!
+          trap 'kill "$app_pid"' EXIT
+
+          for attempt in {1..30}; do
+            if curl --silent --fail http://localhost:8080/api/v1/formations > /dev/null; then
+              break
+            fi
+            sleep 2
+          done
+
+          # Public catalogue remains available without authentication.
+          curl --silent --show-error --fail http://localhost:8080/api/v1/formations > /dev/null
+
+          # A protected write operation must be denied without a JWT.
+          unauthenticated_status=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+            --request POST http://localhost:8080/api/v1/formations \
+            --header "Content-Type: application/json" \
+            --data '{}')
+          test "$unauthenticated_status" = "401"
+
+          # Seeded CI admin account can authenticate and access its own account endpoint.
+          token=$(curl --silent --show-error --fail \
+            --request POST http://localhost:8080/api/v1/auth/login \
+            --header "Content-Type: application/json" \
+            --data '{"email":"admin@smartforma.local","password":"CiAdmin123!"}' \
+            | python3 -c 'import json, sys; print(json.load(sys.stdin)["token"])')
+          curl --silent --show-error --fail \
+            --header "Authorization: Bearer $token" \
+            http://localhost:8080/api/v1/auth/me > /dev/null
+
   frontend:
     name: Frontend build (Angular)
     runs-on: ubuntu-latest
